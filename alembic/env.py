@@ -5,6 +5,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import create_engine, pool
+from sqlalchemy.engine import make_url
 from dotenv import load_dotenv
 
 # Add backend/ to sys.path so "app" imports resolve
@@ -30,7 +31,11 @@ def get_url() -> str:
     url = os.getenv("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set")
-    return url
+    parsed = make_url(url)
+    driver = parsed.drivername
+    if driver in ("postgresql", "postgresql+psycopg2", "postgresql+psycopg2cffi", "postgres"):
+        parsed = parsed.set(drivername="postgresql+psycopg")
+    return str(parsed)
 
 
 def run_migrations_offline() -> None:
