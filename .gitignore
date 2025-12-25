@@ -1,0 +1,18 @@
+# Entornos
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Alembic
+alembic.ini.bak
+
+# Tests / cache
+.pytest_cache/
