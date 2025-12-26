@@ -14,7 +14,10 @@ _SessionFactory = sessionmaker(
 
 
 def get_database_url() -> str:
-    return os.getenv("DATABASE_URL", "")
+    url = os.environ.get("DATABASE_URL", "")
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
 
 
 def get_engine():
