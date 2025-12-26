@@ -17,9 +17,7 @@ from app.core.database import Base  # noqa: E402
 from app import models  # noqa: F401,E402
 
 config = context.config
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is not set")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 if config.config_file_name is not None:
