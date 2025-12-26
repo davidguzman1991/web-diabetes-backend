@@ -6,15 +6,13 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import make_url
-from dotenv import load_dotenv
 
 # Add backend/ to sys.path so "app" imports resolve
 BASE_DIR = Path(__file__).resolve().parents[1]
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-# Load environment variables from .env
-load_dotenv(BASE_DIR / ".env", override=True)
+
 
 from app.core.database import Base  # noqa: E402
 from app import models  # noqa: F401,E402

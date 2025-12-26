@@ -3,10 +3,8 @@ from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-load_dotenv(BASE_DIR / ".env")
 
 def _normalize_database_url(url: str) -> str:
     if url.startswith("postgresql+psycopg2://"):
