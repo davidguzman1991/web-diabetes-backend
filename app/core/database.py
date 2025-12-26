@@ -14,16 +14,16 @@ _SessionFactory = sessionmaker(
 
 
 def get_database_url() -> str:
-    url = os.getenv("DATABASE_URL")
-    if not url:
-        raise RuntimeError("DATABASE_URL is not set")
-    return url
+    return os.getenv("DATABASE_URL", "")
 
 
 def get_engine():
     global _engine
     if _engine is None:
-        _engine = create_engine(get_database_url(), pool_pre_ping=True)
+        url = get_database_url()
+        if not url:
+            return None
+        _engine = create_engine(url, pool_pre_ping=True)
         _SessionFactory.configure(bind=_engine)
     return _engine
 
