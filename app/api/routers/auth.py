@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user
 from app.core.security import verify_password, create_access_token
 from app.crud import patients as patient_crud
 from app.models.user import User
 from app.schemas.auth import Token, PatientLogin, AdminLogin
+from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/auth")
 
@@ -48,3 +49,13 @@ def login_admin(data: AdminLogin, db: Session = Depends(get_db)):
 @router.post("/logout")
 def logout():
     return {"message": "Logged out"}
+
+
+@router.get("/me", response_model=UserOut)
+def get_me(current_user = Depends(get_current_user)) -> UserOut:
+    return UserOut(
+        id=str(current_user.id),
+        username=current_user.username,
+        role=current_user.role,
+        activo=bool(current_user.activo),
+    )
