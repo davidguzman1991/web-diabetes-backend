@@ -15,17 +15,18 @@ from app.routes import auth
 
 app = FastAPI(title=settings.APP_NAME)
 
-origins = []
+origins = {
+    "https://web-diabetes-production.up.railway.app",
+    "http://localhost:3000",
+}
 if settings.CORS_ORIGINS:
-    origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
-if not origins:
-    origins = ["*"]
+    origins.update(o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip())
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=sorted(origins),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
