@@ -18,6 +18,7 @@ from app.core.database import Base  # noqa: E402
 from app import models  # noqa: F401,E402
 
 config = context.config
+config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -26,14 +27,8 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    url = os.getenv("DATABASE_URL")
-    if not url:
-        raise RuntimeError("DATABASE_URL is not set")
-    parsed = make_url(url)
-    driver = parsed.drivername
-    if driver in ("postgresql", "postgresql+psycopg2", "postgresql+psycopg2cffi", "postgres"):
-        parsed = parsed.set(drivername="postgresql+psycopg")
-    return str(parsed)
+    url = os.environ["DATABASE_URL"]
+    return url
 
 
 def run_migrations_offline() -> None:
