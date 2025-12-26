@@ -15,19 +15,19 @@ from app.routes import auth
 
 app = FastAPI(title=settings.APP_NAME)
 
+origins = []
 if settings.CORS_ORIGINS:
     origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
-else:
-    origins = []
+if not origins:
+    origins = ["*"]
 
-if origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(api_auth.router, tags=["auth"])
