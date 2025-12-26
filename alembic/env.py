@@ -5,7 +5,6 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import create_engine, pool
-from sqlalchemy.engine import make_url
 
 # Add backend/ to sys.path so "app" imports resolve
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -18,7 +17,10 @@ from app.core.database import Base  # noqa: E402
 from app import models  # noqa: F401,E402
 
 config = context.config
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -27,8 +29,7 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    url = os.environ["DATABASE_URL"]
-    return url
+    return DATABASE_URL
 
 
 def run_migrations_offline() -> None:
