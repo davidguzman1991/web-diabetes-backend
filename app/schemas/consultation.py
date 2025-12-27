@@ -44,6 +44,9 @@ class ConsultationOut(BaseModel):
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
+    class Config:
+        from_attributes = True
+
 
 class ConsultationSummaryOut(BaseModel):
     id: str
@@ -56,3 +59,6 @@ class ConsultationSummaryOut(BaseModel):
     )
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+    class Config:
+        from_attributes = True

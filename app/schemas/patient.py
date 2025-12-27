@@ -28,6 +28,9 @@ class PatientOut(PatientBase):
 
     model_config = {"from_attributes": True}
 
+    class Config:
+        from_attributes = True
+
 
 class PatientLookupOut(BaseModel):
     id: str
@@ -37,3 +40,6 @@ class PatientLookupOut(BaseModel):
     fecha_nacimiento: date
 
     model_config = {"from_attributes": True}
+
+    class Config:
+        from_attributes = True

@@ -23,6 +23,9 @@ class VisitOut(VisitBase):
 
     model_config = {"from_attributes": True}
 
+    class Config:
+        from_attributes = True
+
 
 class VisitListItem(BaseModel):
     id: str
@@ -30,3 +33,6 @@ class VisitListItem(BaseModel):
     diagnostico: str
 
     model_config = {"from_attributes": True}
+
+    class Config:
+        from_attributes = True

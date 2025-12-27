@@ -60,3 +60,6 @@ class MedicationOut(MedicationBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    class Config:
+        from_attributes = True

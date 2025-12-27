@@ -51,3 +51,6 @@ class ConsultaLabOut(BaseModel):
     creado_en: datetime
 
     model_config = {"from_attributes": True}
+
+    class Config:
+        from_attributes = True

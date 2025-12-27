@@ -16,6 +16,9 @@ class MedicationOut(MedicationIn):
 
     model_config = {"from_attributes": True}
 
+    class Config:
+        from_attributes = True
+
 
 class ConsultaBase(BaseModel):
     diagnostico: str | None = None
@@ -36,6 +39,9 @@ class ConsultaOut(ConsultaBase):
 
     model_config = {"from_attributes": True}
 
+    class Config:
+        from_attributes = True
+
 
 class ConsultaSummary(BaseModel):
     id: str
@@ -43,3 +49,6 @@ class ConsultaSummary(BaseModel):
     diagnostico: str | None = None
 
     model_config = {"from_attributes": True}
+
+    class Config:
+        from_attributes = True

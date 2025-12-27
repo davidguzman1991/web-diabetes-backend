@@ -20,3 +20,6 @@ class PrescriptionItemOut(PrescriptionItemBase):
     medication_nombre: str | None = None
 
     model_config = {"from_attributes": True}
+
+    class Config:
+        from_attributes = True
