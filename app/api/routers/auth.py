@@ -59,3 +59,15 @@ def get_me(current_user = Depends(get_current_user)) -> UserOut:
         role=current_user.role,
         activo=bool(current_user.activo),
     )
+
+
+@router.get("/admin/me", response_model=UserOut)
+def get_admin_me(current_user = Depends(get_current_user)) -> UserOut:
+    if str(current_user.role).lower() != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
+    return UserOut(
+        id=str(current_user.id),
+        username=current_user.username,
+        role=current_user.role,
+        activo=bool(current_user.activo),
+    )
