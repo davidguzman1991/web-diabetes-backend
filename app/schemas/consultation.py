@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from pydantic import BaseModel, Field, AliasChoices, field_validator
+from pydantic import BaseModel, Field, AliasChoices, field_validator, ConfigDict
 
 from app.schemas.consultation_medication import MedicationCreate, MedicationOut
 
@@ -25,7 +25,7 @@ class ConsultationCreate(BaseModel):
             raise ValueError("medications must not be empty")
         return value
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ConsultationOut(BaseModel):
@@ -42,10 +42,7 @@ class ConsultationOut(BaseModel):
     )
     medications: list[MedicationOut]
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ConsultationSummaryOut(BaseModel):
@@ -58,7 +55,4 @@ class ConsultationSummaryOut(BaseModel):
         default=None, validation_alias=AliasChoices("indicaciones", "indications")
     )
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MedicationIn(BaseModel):
@@ -14,10 +14,7 @@ class MedicationIn(BaseModel):
 class MedicationOut(MedicationIn):
     id: str
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ConsultaBase(BaseModel):
@@ -37,10 +34,7 @@ class ConsultaOut(ConsultaBase):
     fecha: datetime
     medicamentos: list[MedicationOut]
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ConsultaSummary(BaseModel):
@@ -48,7 +42,4 @@ class ConsultaSummary(BaseModel):
     fecha: datetime
     diagnostico: str | None = None
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

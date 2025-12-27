@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 
 
 class ConsultaLabCreate(BaseModel):
@@ -50,7 +50,4 @@ class ConsultaLabOut(BaseModel):
     rango_ref_snapshot: str | None = None
     creado_en: datetime
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

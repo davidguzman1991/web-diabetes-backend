@@ -1,6 +1,5 @@
-import uuid
 from datetime import date
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class UserBase(BaseModel):
@@ -21,10 +20,7 @@ class UserLogin(BaseModel):
 class UserOut(UserBase):
     id: str
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PatientUserCreate(BaseModel):

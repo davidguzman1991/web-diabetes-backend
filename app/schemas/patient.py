@@ -1,5 +1,5 @@
 from datetime import date
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class PatientBase(BaseModel):
@@ -26,10 +26,7 @@ class PatientUpdate(BaseModel):
 class PatientOut(PatientBase):
     id: str
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PatientLookupOut(BaseModel):
@@ -39,7 +36,4 @@ class PatientLookupOut(BaseModel):
     apellidos: str
     fecha_nacimiento: date
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

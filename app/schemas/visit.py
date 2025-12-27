@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.prescription import PrescriptionItemCreate, PrescriptionItemOut
 
@@ -21,10 +21,7 @@ class VisitOut(VisitBase):
     updated_at: datetime
     items: list[PrescriptionItemOut]
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VisitListItem(BaseModel):
@@ -32,7 +29,4 @@ class VisitListItem(BaseModel):
     fecha_consulta: date
     diagnostico: str
 
-    model_config = {"from_attributes": True}
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
