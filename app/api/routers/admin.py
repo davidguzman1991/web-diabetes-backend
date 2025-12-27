@@ -20,7 +20,13 @@ from app.crud import consultations as consultation_crud
 from app.models.consultation import Consultation
 from app.models.consultation_medication import Medication
 from app.models.user import User
-from app.schemas.patient import PatientCreate, PatientUpdate, PatientOut, PatientLookupOut
+from app.schemas.patient import (
+    PatientCreate,
+    PatientUpdate,
+    PatientOut,
+    PatientLookupOut,
+    ResetPatientPasswordRequest,
+)
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
 from app.schemas.visit import VisitCreate, VisitOut, VisitListItem
 from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
@@ -156,6 +162,31 @@ def get_patient(patient_id: str, db: Session = Depends(get_db)):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     return patient
+
+
+@router.post("/patients/{patient_id}/reset-password")
+def reset_patient_password(
+    patient_id: str,
+    data: ResetPatientPasswordRequest,
+    db: Session = Depends(get_db),
+    current_admin=Depends(require_admin),
+):
+    patient = patient_crud.get(db, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    try:
+        new_hash = get_password_hash(data.new_password)
+        patient.password_hash = new_hash
+        user = db.query(User).filter(User.username == patient.cedula).first()
+        if user and user.role.lower() == "patient":
+            user.password_hash = new_hash
+            user.activo = True
+        db.commit()
+        return {"success": True}
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal Server Error") from exc
 
 
 @router.post("/patients/{cedula}/reset-password")
