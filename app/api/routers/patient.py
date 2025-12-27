@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -7,6 +9,7 @@ from app.crud import visits as visit_crud
 from app.crud import consultas as consulta_crud
 from app.crud import consultations as consultation_crud
 from app.crud import patients as patient_crud
+from app.models.patient import Patient
 from app.schemas.consulta import ConsultaOut, ConsultaSummary
 from app.schemas.consultation import ConsultationOut
 from app.schemas.visit import VisitListItem, VisitOut
@@ -19,9 +22,22 @@ def get_patient_id(current_user) -> str:
 
 
 def get_patient_by_user(db: Session, current_user):
-    patient = patient_crud.get_by_cedula(db, current_user.username)
+    patient = None
+    try:
+        patient = (
+            db.query(Patient)
+            .filter(text("patients.user_id = :user_id"))
+            .params(user_id=str(current_user.id))
+            .first()
+        )
+    except SQLAlchemyError:
+        patient = None
+
     if not patient:
-        raise HTTPException(status_code=404, detail="Paciente no existe")
+        patient = patient_crud.get_by_cedula(db, current_user.username)
+
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found for this user")
     return patient
 
 
