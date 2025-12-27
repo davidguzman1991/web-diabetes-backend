@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from uuid import UUID
 from pydantic import BaseModel, Field, AliasChoices, field_validator, ConfigDict
 
 from app.schemas.consultation_medication import MedicationCreate, MedicationOut
@@ -29,7 +30,7 @@ class ConsultationCreate(BaseModel):
 
 
 class ConsultationOut(BaseModel):
-    id: str
+    id: UUID
     created_at: datetime
     diagnosis: str | None = Field(
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
@@ -46,7 +47,7 @@ class ConsultationOut(BaseModel):
 
 
 class ConsultationSummaryOut(BaseModel):
-    id: str
+    id: UUID
     created_at: datetime
     diagnosis: str | None = Field(
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
