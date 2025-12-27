@@ -15,7 +15,7 @@ router = APIRouter(dependencies=[Depends(require_patient)])
 
 
 def get_patient_by_user(db: Session, current_user):
-    patient = patient_crud.get_by_user_id(db, current_user.id)
+    patient = patient_crud.get_by_cedula(db, current_user.username)
     if not patient:
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
     return patient
