@@ -27,3 +27,13 @@ class PatientOut(PatientBase):
     id: str
 
     model_config = {"from_attributes": True}
+
+
+class PatientLookupOut(BaseModel):
+    id: str
+    cedula: str
+    nombres: str
+    apellidos: str
+    fecha_nacimiento: date
+
+    model_config = {"from_attributes": True}

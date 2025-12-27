@@ -1,5 +1,7 @@
 import logging
 from datetime import date, datetime, time
+import secrets
+import string
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
@@ -18,7 +20,7 @@ from app.crud import consultations as consultation_crud
 from app.models.consultation import Consultation
 from app.models.consultation_medication import Medication
 from app.models.user import User
-from app.schemas.patient import PatientCreate, PatientUpdate, PatientOut
+from app.schemas.patient import PatientCreate, PatientUpdate, PatientOut, PatientLookupOut
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
 from app.schemas.visit import VisitCreate, VisitOut, VisitListItem
 from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
@@ -74,9 +76,31 @@ def _get_patient(db: Session, cedula: str):
     return patient
 
 
-@router.get("/patients", response_model=list[PatientOut])
-def list_patients(db: Session = Depends(get_db)):
-    return patient_crud.list_patients(db)
+def _generate_temp_password(length: int = 8) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+@router.get("/patients", response_model=PatientLookupOut | list[PatientOut])
+def list_patients(cedula: str | None = None, db: Session = Depends(get_db)):
+    try:
+        if cedula:
+            patient = patient_crud.get_by_cedula(db, cedula)
+            if not patient:
+                raise HTTPException(status_code=404, detail="Paciente no existe")
+            return PatientLookupOut(
+                id=str(patient.id),
+                cedula=patient.cedula,
+                nombres=patient.nombres,
+                apellidos=patient.apellidos,
+                fecha_nacimiento=patient.fecha_nacimiento,
+            )
+        return patient_crud.list_patients(db)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to list patients", extra={"cedula": cedula})
+        raise HTTPException(status_code=500, detail="Error fetching patients") from exc
 
 
 @router.post("/patients", response_model=PatientOut | UserOut, status_code=status.HTTP_201_CREATED)
@@ -132,6 +156,21 @@ def get_patient(patient_id: str, db: Session = Depends(get_db)):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     return patient
+
+
+@router.post("/patients/{cedula}/reset-password")
+def reset_patient_password(cedula: str, db: Session = Depends(get_db)):
+    patient = patient_crud.get_by_cedula(db, cedula)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no existe")
+    user = db.query(User).filter(User.username == cedula).first()
+    if not user or user.role.lower() != "patient":
+        raise HTTPException(status_code=404, detail="Patient user not found")
+    temp_password = _generate_temp_password(8)
+    user.password_hash = get_password_hash(temp_password)
+    user.activo = True
+    db.commit()
+    return {"cedula": cedula, "temporary_password": temp_password}
 
 
 @router.put("/patients/{patient_id}", response_model=PatientOut)
