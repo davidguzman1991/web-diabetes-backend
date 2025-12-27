@@ -12,6 +12,10 @@ def get_by_cedula(db: Session, cedula: str) -> Patient | None:
     return db.query(Patient).filter(Patient.cedula == cedula).first()
 
 
+def get_by_user_id(db: Session, user_id) -> Patient | None:
+    return db.query(Patient).filter(Patient.user_id == user_id).first()
+
+
 def get(db: Session, patient_id: str) -> Patient | None:
     return db.query(Patient).filter(Patient.id == patient_id).first()
 
