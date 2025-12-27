@@ -14,12 +14,6 @@ from app.api.routers import debug
 
 app = FastAPI(title=settings.APP_NAME)
 
-@app.on_event("startup")
-def log_registered_routes() -> None:
-    for route in app.routes:
-        methods = ",".join(sorted(getattr(route, "methods", []) or []))
-        print(f"[route] {route.path} [{methods}]")
-
 origins = {
     "https://web-diabetes-production.up.railway.app",
     "http://localhost:3000",
