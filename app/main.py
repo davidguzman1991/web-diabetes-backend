@@ -11,7 +11,6 @@ from app.core.config import settings
 from app.api.routers import auth as api_auth, admin, patient, consultation_medications, labs
 from app.api.routers import consultations
 from app.api.routers import debug
-from app.routes import auth
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -31,7 +30,6 @@ app.add_middleware(
 )
 
 
-app.include_router(auth.router)
 app.include_router(api_auth.router, tags=["auth"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(patient.router, prefix="/patient", tags=["patient"])
