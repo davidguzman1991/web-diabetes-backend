@@ -1,5 +1,5 @@
 from datetime import date
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 
 class PatientBase(BaseModel):
@@ -37,3 +37,15 @@ class PatientLookupOut(BaseModel):
     fecha_nacimiento: date
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ResetPatientPasswordRequest(BaseModel):
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        cleaned = value.strip()
+        if len(cleaned) < 8:
+            raise ValueError("new_password must be at least 8 characters")
+        return cleaned
