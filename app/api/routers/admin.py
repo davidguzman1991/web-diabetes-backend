@@ -1,8 +1,5 @@
 import logging
 from datetime import date, datetime, time
-import secrets
-import string
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy.exc import IntegrityError
@@ -80,11 +77,6 @@ def _get_patient(db: Session, cedula: str):
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient not found for cedula {cedula}")
     return patient
-
-
-def _generate_temp_password(length: int = 8) -> str:
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 @router.get("/patients", response_model=PatientLookupOut | list[PatientOut])
@@ -187,21 +179,6 @@ def reset_patient_password(
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal Server Error") from exc
-
-
-@router.post("/patients/{cedula}/reset-password")
-def reset_patient_password(cedula: str, db: Session = Depends(get_db)):
-    patient = patient_crud.get_by_cedula(db, cedula)
-    if not patient:
-        raise HTTPException(status_code=404, detail="Paciente no existe")
-    user = db.query(User).filter(User.username == cedula).first()
-    if not user or user.role.lower() != "patient":
-        raise HTTPException(status_code=404, detail="Patient user not found")
-    temp_password = _generate_temp_password(8)
-    user.password_hash = get_password_hash(temp_password)
-    user.activo = True
-    db.commit()
-    return {"cedula": cedula, "temporary_password": temp_password}
 
 
 @router.put("/patients/{patient_id}", response_model=PatientOut)
