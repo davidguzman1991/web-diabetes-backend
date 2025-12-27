@@ -28,3 +28,48 @@ class Medication(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     consultation = relationship("Consultation", back_populates="medications")
+
+    @staticmethod
+    def _normalize_int(value) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, int):
+            return value
+        cleaned = str(value).strip()
+        if not cleaned or not cleaned.isdigit():
+            return None
+        return int(cleaned)
+
+    def _uses_legacy_fields(self) -> bool:
+        if self.route or self.frequency:
+            return True
+        if self.dose and self._normalize_int(self.dose) is None:
+            return True
+        if self.duration and self._normalize_int(self.duration) is None:
+            return True
+        return False
+
+    @property
+    def quantity(self) -> int | None:
+        return self._normalize_int(self.dose)
+
+    @property
+    def duration_days(self) -> int | None:
+        return self._normalize_int(self.duration)
+
+    @property
+    def description(self) -> str | None:
+        if not self._uses_legacy_fields():
+            return self.indications or None
+        parts: list[str] = []
+        if self.dose:
+            parts.append(f"Dosis: {self.dose}")
+        if self.frequency:
+            parts.append(f"Frecuencia: {self.frequency}")
+        if self.route:
+            parts.append(f"Via: {self.route}")
+        if self.duration:
+            parts.append(f"Duracion: {self.duration}")
+        if self.indications:
+            parts.append(f"Notas: {self.indications}")
+        return " | ".join(parts) if parts else None

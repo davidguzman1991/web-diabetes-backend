@@ -60,11 +60,9 @@ def list_consultation_medications(
 # Example payload:
 # {
 #   "drug_name": "Metformina",
-#   "dose": "500 mg",
-#   "route": "VO",
-#   "frequency": "cada 12 h",
-#   "duration": "14 dias",
-#   "indications": "tomar con comida",
+#   "quantity": 30,
+#   "description": "1 tableta cada 8 horas via oral despues de comidas",
+#   "duration_days": 14,
 #   "sort_order": 1
 # }
 @router.post(

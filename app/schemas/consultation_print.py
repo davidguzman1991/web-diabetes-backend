@@ -18,11 +18,9 @@ class PrintConsultation(BaseModel):
 
 class PrintMedication(BaseModel):
     drug_name: str
-    dose: str | None = None
-    frequency: str | None = None
-    route: str | None = None
-    duration: str | None = None
-    indications: str | None = None
+    quantity: int | None = None
+    description: str | None = None
+    duration_days: int | None = None
 
 
 class PrintLab(BaseModel):

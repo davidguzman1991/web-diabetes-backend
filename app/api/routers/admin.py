@@ -34,6 +34,19 @@ router = APIRouter(dependencies=[Depends(require_admin)])
 logger = logging.getLogger(__name__)
 
 
+def _normalize_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def _int_to_text(value: int | None) -> str | None:
+    if value is None:
+        return None
+    return str(int(value))
+
+
 def _serialize_consultation(consultation: Consultation) -> dict:
     return {
         "id": str(consultation.id),
@@ -46,11 +59,9 @@ def _serialize_consultation(consultation: Consultation) -> dict:
                 "id": str(med.id),
                 "consultation_id": str(med.consultation_id),
                 "drug_name": med.drug_name,
-                "dose": med.dose,
-                "route": med.route,
-                "frequency": med.frequency,
-                "duration": med.duration,
-                "indications": med.indications,
+                "quantity": med.quantity,
+                "description": med.description,
+                "duration_days": med.duration_days,
                 "sort_order": med.sort_order,
                 "created_at": med.created_at,
                 "updated_at": med.updated_at,
@@ -128,24 +139,41 @@ def create_patient(data: PatientCreate | PatientUserCreate, db: Session = Depend
 
     existing = patient_crud.get_by_cedula(db, data.cedula)
     if existing:
-        raise HTTPException(status_code=400, detail="Cedula already exists")
+        raise HTTPException(status_code=409, detail="Cedula already exists")
 
-    patient = patient_crud.create(db, data)
+    seed = data.password or patient_crud.normalize_password_seed(data.apellidos, data.nombres)
+    password_hash = get_password_hash(seed)
+    try:
+        patient = patient_crud.create(db, data, password_hash=password_hash, commit=False)
 
-    username = data.cedula
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        seed = data.password or patient_crud.normalize_password_seed(data.apellidos, data.nombres)
-        user = User(
-            username=username,
-            password_hash=get_password_hash(seed),
-            role="patient",
-            activo=True,
-        )
-        db.add(user)
+        username = data.cedula
+        user = db.query(User).filter(User.username == username).first()
+        if user:
+            user.password_hash = password_hash
+            user.role = "patient"
+            user.activo = True
+        else:
+            user = User(
+                username=username,
+                password_hash=password_hash,
+                role="patient",
+                activo=True,
+            )
+            db.add(user)
+
         db.commit()
-
-    return patient
+        db.refresh(patient)
+        return patient
+    except HTTPException:
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Cedula already exists") from exc
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Failed to create patient", extra={"cedula": data.cedula})
+        raise HTTPException(status_code=500, detail="Error creating patient") from exc
 
 
 @router.get("/patients/{patient_id}", response_model=PatientOut)
@@ -310,11 +338,11 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
             medication = Medication(
                 consultation_id=consultation.id,
                 drug_name=item.drug_name,
-                dose=item.dose,
-                route=item.route,
-                frequency=item.frequency,
-                duration=item.duration,
-                indications=item.indications,
+                dose=_int_to_text(item.quantity),
+                route=None,
+                frequency=None,
+                duration=_int_to_text(item.duration_days),
+                indications=_normalize_text(item.description),
                 sort_order=sort_order,
             )
             db.add(medication)
@@ -386,8 +414,8 @@ def print_consultation(consulta_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Paciente no existe")
 
     meds_html = "".join(
-        f"<tr><td>{med.drug_name}</td><td>{med.dose or ''}</td><td>{med.frequency or ''}</td>"
-        f"<td>{med.route or ''}</td><td>{med.duration or ''}</td><td>{med.indications or ''}</td></tr>"
+        f"<tr><td>{med.drug_name}</td><td>{med.quantity or ''}</td><td>{med.description or ''}</td>"
+        f"<td>{f'{med.duration_days} dias' if med.duration_days is not None else ''}</td></tr>"
         for med in consultation.medications
     )
 
@@ -420,11 +448,9 @@ def print_consultation(consulta_id: str, db: Session = Depends(get_db)):
           <thead>
             <tr>
               <th>Medicamento</th>
-              <th>Dosis</th>
-              <th>Horario</th>
-              <th>Via</th>
-              <th>Duracion</th>
-              <th>Notas</th>
+              <th>Cantidad</th>
+              <th>Descripcion</th>
+              <th>Duracion (dias)</th>
             </tr>
           </thead>
           <tbody>

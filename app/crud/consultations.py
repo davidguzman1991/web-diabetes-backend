@@ -10,6 +10,19 @@ from app.models.consultation_medication import Medication
 logger = logging.getLogger(__name__)
 
 
+def _normalize_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def _int_to_text(value: int | None) -> str | None:
+    if value is None:
+        return None
+    return str(int(value))
+
+
 def _normalize_fecha(value) -> datetime | None:
     if value is None:
         return None
@@ -74,11 +87,11 @@ def create(db: Session, patient_id: str, data) -> Consultation:
                 Medication(
                     consultation_id=consultation.id,
                     drug_name=item.drug_name,
-                    dose=item.dose,
-                    route=item.route,
-                    frequency=item.frequency,
-                    duration=item.duration,
-                    indications=item.indications,
+                    dose=_int_to_text(item.quantity),
+                    route=None,
+                    frequency=None,
+                    duration=_int_to_text(item.duration_days),
+                    indications=_normalize_text(item.description),
                     sort_order=sort_order,
                 )
             )

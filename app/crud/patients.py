@@ -20,7 +20,7 @@ def list_patients(db: Session) -> list[Patient]:
     return db.query(Patient).order_by(Patient.apellidos.asc()).all()
 
 
-def create(db: Session, data) -> Patient:
+def create(db: Session, data, password_hash: str | None = None, commit: bool = True) -> Patient:
     seed = data.password or normalize_password_seed(data.apellidos, data.nombres)
     patient = Patient(
         cedula=data.cedula,
@@ -29,11 +29,14 @@ def create(db: Session, data) -> Patient:
         fecha_nacimiento=data.fecha_nacimiento,
         email=data.email,
         activo=data.activo,
-        password_hash=get_password_hash(seed),
+        password_hash=password_hash or get_password_hash(seed),
     )
     db.add(patient)
-    db.commit()
-    db.refresh(patient)
+    if commit:
+        db.commit()
+        db.refresh(patient)
+    else:
+        db.flush()
     return patient
 
 

@@ -49,11 +49,9 @@ def get_consultation_print(
     medications = [
         PrintMedication(
             drug_name=item.drug_name,
-            dose=item.dose,
-            frequency=item.frequency,
-            route=item.route,
-            duration=item.duration,
-            indications=item.indications,
+            quantity=item.quantity,
+            description=item.description,
+            duration_days=item.duration_days,
         )
         for item in consultation.medications
     ]

@@ -5,11 +5,9 @@ from pydantic import BaseModel, field_validator, ConfigDict
 
 class MedicationBase(BaseModel):
     drug_name: str
-    dose: str | None = None
-    route: str | None = None
-    frequency: str | None = None
-    duration: str | None = None
-    indications: str | None = None
+    quantity: int | None = None
+    description: str | None = None
+    duration_days: int | None = None
     sort_order: int | None = None
 
     @field_validator("drug_name")
@@ -22,24 +20,31 @@ class MedicationBase(BaseModel):
 
 
 class MedicationCreate(MedicationBase):
-    @field_validator("dose")
+    quantity: int
+
+    @field_validator("description")
     @classmethod
-    def validate_dose(cls, value: str | None) -> str:
+    def validate_description(cls, value: str | None) -> str | None:
         if value is None:
-            raise ValueError("dose is required")
+            return None
         cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("dose is required")
-        return cleaned
+        return cleaned or None
+
+    @field_validator("quantity", "duration_days")
+    @classmethod
+    def validate_positive_int(cls, value: int | None) -> int | None:
+        if value is None:
+            return value
+        if value <= 0:
+            raise ValueError("value must be positive")
+        return value
 
 
 class MedicationUpdate(BaseModel):
     drug_name: str | None = None
-    dose: str | None = None
-    route: str | None = None
-    frequency: str | None = None
-    duration: str | None = None
-    indications: str | None = None
+    quantity: int | None = None
+    description: str | None = None
+    duration_days: int | None = None
     sort_order: int | None = None
 
     @field_validator("drug_name")
@@ -51,6 +56,23 @@ class MedicationUpdate(BaseModel):
         if not cleaned:
             raise ValueError("drug_name is required")
         return cleaned
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+    @field_validator("quantity", "duration_days")
+    @classmethod
+    def validate_positive_int(cls, value: int | None) -> int | None:
+        if value is None:
+            return value
+        if value <= 0:
+            raise ValueError("value must be positive")
+        return value
 
 
 class MedicationOut(MedicationBase):
