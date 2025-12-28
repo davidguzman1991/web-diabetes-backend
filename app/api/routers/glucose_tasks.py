@@ -87,9 +87,16 @@ def list_glucose_logs(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    _get_patient_or_404(db, patient_id)
-    _ensure_patient_access(db, patient_id, current_user)
-    return glucose_crud.list_by_patient(db, patient_id)
+    role = str(getattr(current_user, "role", "")).strip().lower()
+    if role == "admin":
+        resolved_id = patient_id
+    elif role == "patient":
+        resolved_id = _resolve_patient_id(db, None, current_user)
+    else:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    _get_patient_or_404(db, resolved_id)
+    _ensure_patient_access(db, resolved_id, current_user)
+    return glucose_crud.list_by_patient(db, resolved_id)
 
 
 @router.get("/tasks/patient/{patient_id}", response_model=list[PatientTaskOut])
