@@ -1,17 +1,17 @@
 from datetime import date, datetime
+from typing import Literal, Optional
 from uuid import UUID
-from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class GlucoseLogCreate(BaseModel):
-    patient_id: UUID | None = None
-    date: date | None = None
+    patient_id: Optional[UUID] = None
+    date: Optional[date] = None
     value: int = Field(ge=20, le=600)
-    measurement_type: Literal["fasting", "postprandial"] | None = None
-    type: Literal["ayuno", "postprandial"] | None = None
-    taken_at: datetime | None = None
-    observation: str | None = None
+    measurement_type: Optional[Literal["fasting", "postprandial"]] = None
+    type: Optional[Literal["ayuno", "postprandial"]] = None
+    taken_at: Optional[datetime] = None
+    observation: Optional[str] = None
 
 
 class GlucoseLogOut(BaseModel):
