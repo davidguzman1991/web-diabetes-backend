@@ -10,6 +10,7 @@ load_dotenv(BASE_DIR / ".env")
 from app.core.config import settings
 from app.api.routers import auth as api_auth, admin, patient, consultation_medications, labs
 from app.api.routers import consultations
+from app.api.routers import glucose_tasks
 from app.api.routers import debug
 
 app = FastAPI(title=settings.APP_NAME)
@@ -36,4 +37,5 @@ app.include_router(patient.router, prefix="/patient", tags=["patient"])
 app.include_router(consultation_medications.router, tags=["medications"])
 app.include_router(labs.router, tags=["labs"])
 app.include_router(consultations.router, tags=["consultations"])
+app.include_router(glucose_tasks.router, tags=["glucose-tasks"])
 app.include_router(debug.router, tags=["debug"])

@@ -20,3 +20,5 @@ class Patient(Base):
 
     consultations = relationship("Consultation", back_populates="patient", cascade="all, delete-orphan")
     visits = relationship("Visit", back_populates="patient", cascade="all, delete-orphan")
+    glucose_logs = relationship("GlucoseLog", back_populates="patient", cascade="all, delete-orphan")
+    tasks = relationship("PatientTask", back_populates="patient", cascade="all, delete-orphan")

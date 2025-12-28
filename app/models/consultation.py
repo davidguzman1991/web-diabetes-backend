@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,6 +15,17 @@ class Consultation(Base):
     diagnosis = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
     indications = Column(Text, nullable=True)
+    weight = Column(Float, nullable=True)
+    height = Column(Float, nullable=True)
+    blood_pressure = Column(String(50), nullable=True)
+    heart_rate = Column(Integer, nullable=True)
+    oxygen_saturation = Column(Integer, nullable=True)
+    abdominal_circumference = Column(Float, nullable=True)
+    reason_for_visit = Column(String(255), nullable=True)
+    current_illness = Column(Text, nullable=True)
+    physical_exam = Column(Text, nullable=True)
+    requested_exams = Column(Text, nullable=True)
+    next_visit_date = Column(Date, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
     patient = relationship("Patient", back_populates="consultations")

@@ -89,6 +89,17 @@ def create(db: Session, patient_id: str, data) -> Consultation:
             "diagnosis": data.diagnosis,
             "notes": data.notes,
             "indications": data.indications,
+            "weight": getattr(data, "weight", None),
+            "height": getattr(data, "height", None),
+            "blood_pressure": getattr(data, "blood_pressure", None),
+            "heart_rate": getattr(data, "heart_rate", None),
+            "oxygen_saturation": getattr(data, "oxygen_saturation", None),
+            "abdominal_circumference": getattr(data, "abdominal_circumference", None),
+            "reason_for_visit": getattr(data, "reason_for_visit", None),
+            "current_illness": getattr(data, "current_illness", None),
+            "physical_exam": getattr(data, "physical_exam", None),
+            "requested_exams": getattr(data, "requested_exams", None),
+            "next_visit_date": getattr(data, "next_visit_date", None),
         }
         if created_at is not None:
             consultation_data["created_at"] = created_at

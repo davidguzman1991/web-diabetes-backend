@@ -71,6 +71,17 @@ def _serialize_consultation(consultation: Consultation) -> dict:
         "diagnosis": consultation.diagnosis,
         "notes": consultation.notes,
         "indications": consultation.indications,
+        "weight": consultation.weight,
+        "height": consultation.height,
+        "blood_pressure": consultation.blood_pressure,
+        "heart_rate": consultation.heart_rate,
+        "oxygen_saturation": consultation.oxygen_saturation,
+        "abdominal_circumference": consultation.abdominal_circumference,
+        "reason_for_visit": consultation.reason_for_visit,
+        "current_illness": consultation.current_illness,
+        "physical_exam": consultation.physical_exam,
+        "requested_exams": consultation.requested_exams,
+        "next_visit_date": consultation.next_visit_date,
         "medications": [
             {
                 "id": str(med.id),
@@ -359,6 +370,17 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
             "diagnosis": data.diagnosis,
             "notes": data.notes,
             "indications": data.indications,
+            "weight": data.weight,
+            "height": data.height,
+            "blood_pressure": data.blood_pressure,
+            "heart_rate": data.heart_rate,
+            "oxygen_saturation": data.oxygen_saturation,
+            "abdominal_circumference": data.abdominal_circumference,
+            "reason_for_visit": data.reason_for_visit,
+            "current_illness": data.current_illness,
+            "physical_exam": data.physical_exam,
+            "requested_exams": data.requested_exams,
+            "next_visit_date": data.next_visit_date,
         }
         if created_at is not None:
             consultation_fields["created_at"] = created_at

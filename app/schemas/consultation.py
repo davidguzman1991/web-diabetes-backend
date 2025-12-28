@@ -17,6 +17,17 @@ class ConsultationCreate(BaseModel):
     indications: str | None = Field(
         default=None, validation_alias=AliasChoices("indicaciones", "indications")
     )
+    weight: float | None = None
+    height: float | None = None
+    blood_pressure: str | None = None
+    heart_rate: int | None = None
+    oxygen_saturation: int | None = None
+    abdominal_circumference: float | None = None
+    reason_for_visit: str | None = None
+    current_illness: str | None = None
+    physical_exam: str | None = None
+    requested_exams: str | None = None
+    next_visit_date: date | None = None
     medications: list[MedicationCreate]
 
     @field_validator("medications")
@@ -41,6 +52,17 @@ class ConsultationOut(BaseModel):
     indications: str | None = Field(
         default=None, validation_alias=AliasChoices("indicaciones", "indications")
     )
+    weight: float | None = None
+    height: float | None = None
+    blood_pressure: str | None = None
+    heart_rate: int | None = None
+    oxygen_saturation: int | None = None
+    abdominal_circumference: float | None = None
+    reason_for_visit: str | None = None
+    current_illness: str | None = None
+    physical_exam: str | None = None
+    requested_exams: str | None = None
+    next_visit_date: date | None = None
     medications: list[MedicationOut]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -55,5 +77,6 @@ class ConsultationSummaryOut(BaseModel):
     indications: str | None = Field(
         default=None, validation_alias=AliasChoices("indicaciones", "indications")
     )
+    next_visit_date: date | None = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

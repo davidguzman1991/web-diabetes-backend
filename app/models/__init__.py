@@ -10,6 +10,8 @@ from app.models.consultation_medication import Medication
 from app.models.catalog_lab import CatalogLab
 from app.models.consulta_lab import ConsultaLab
 from app.models.diagnosis import DiagnosisCatalog
+from app.models.glucose_log import GlucoseLog
+from app.models.patient_task import PatientTask
 
 __all__ = [
     "Patient",
@@ -24,4 +26,6 @@ __all__ = [
     "CatalogLab",
     "ConsultaLab",
     "DiagnosisCatalog",
+    "GlucoseLog",
+    "PatientTask",
 ]
