@@ -4,6 +4,7 @@ from pydantic import BaseModel, field_validator, ConfigDict
 
 
 class MedicationBase(BaseModel):
+    medication_id: UUID | None = None
     drug_name: str
     quantity: int | None = None
     description: str | None = None
@@ -41,6 +42,7 @@ class MedicationCreate(MedicationBase):
 
 
 class MedicationUpdate(BaseModel):
+    medication_id: UUID | None = None
     drug_name: str | None = None
     quantity: int | None = None
     description: str | None = None

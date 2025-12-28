@@ -1,6 +1,8 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.consultation_medication import Medication
+from app.models.medication import MedicationCatalog
 
 
 def _normalize_text(value: str | None) -> str | None:
@@ -14,6 +16,18 @@ def _int_to_text(value: int | None) -> str | None:
     if value is None:
         return None
     return str(int(value))
+
+def _resolve_medication_id(db: Session, medication_id: str | None, drug_name: str) -> str | None:
+    if medication_id:
+        return medication_id
+    cleaned = (drug_name or "").strip()
+    if not cleaned:
+        return None
+    return (
+        db.query(MedicationCatalog.id)
+        .filter(func.lower(MedicationCatalog.nombre_generico) == cleaned.lower())
+        .scalar()
+    )
 
 
 def list_by_consultation(db: Session, consultation_id: str) -> list[Medication]:
@@ -35,6 +49,7 @@ def create_many(db: Session, consultation_id: str, items) -> list[Medication]:
         created.append(
             Medication(
                 consultation_id=consultation_id,
+                medication_id=_resolve_medication_id(db, item.medication_id, item.drug_name),
                 drug_name=item.drug_name,
                 dose=_int_to_text(item.quantity),
                 route=None,
@@ -53,6 +68,8 @@ def create_many(db: Session, consultation_id: str, items) -> list[Medication]:
 
 def update(db: Session, medication: Medication, data) -> Medication:
     payload = data.model_dump(exclude_unset=True)
+    if "medication_id" in payload:
+        medication.medication_id = payload["medication_id"]
     if "drug_name" in payload:
         medication.drug_name = payload["drug_name"]
     if "quantity" in payload:

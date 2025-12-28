@@ -17,6 +17,7 @@ class Medication(Base):
         nullable=False,
         index=True,
     )
+    medication_id = Column(UUID(as_uuid=True), ForeignKey("medication_catalog.id"), nullable=True, index=True)
     drug_name = Column(Text, nullable=False)
     dose = Column(Text, nullable=True)
     route = Column(Text, nullable=True)
@@ -28,6 +29,7 @@ class Medication(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     consultation = relationship("Consultation", back_populates="medications")
+    medication = relationship("MedicationCatalog")
 
     @staticmethod
     def _normalize_int(value) -> int | None:

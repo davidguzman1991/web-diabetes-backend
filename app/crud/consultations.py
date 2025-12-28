@@ -1,11 +1,14 @@
 import logging
 from datetime import date, datetime, time
 
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.crud import diagnoses as diagnosis_crud
 from app.models.consultation import Consultation
 from app.models.consultation_medication import Medication
+from app.models.medication import MedicationCatalog
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,19 @@ def _int_to_text(value: int | None) -> str | None:
     if value is None:
         return None
     return str(int(value))
+
+
+def _resolve_medication_id(db: Session, medication_id: str | None, drug_name: str) -> str | None:
+    if medication_id:
+        return medication_id
+    cleaned = (drug_name or "").strip()
+    if not cleaned:
+        return None
+    return (
+        db.query(MedicationCatalog.id)
+        .filter(func.lower(MedicationCatalog.nombre_generico) == cleaned.lower())
+        .scalar()
+    )
 
 
 def _normalize_fecha(value) -> datetime | None:
@@ -79,6 +95,7 @@ def create(db: Session, patient_id: str, data) -> Consultation:
         consultation = Consultation(**consultation_data)
         db.add(consultation)
         db.flush()
+        diagnosis_crud.ensure(db, data.diagnosis)
         logger.info("Creating consultation %s for patient %s", consultation.id, patient_id)
 
         for index, item in enumerate(data.medications):
@@ -86,6 +103,7 @@ def create(db: Session, patient_id: str, data) -> Consultation:
             db.add(
                 Medication(
                     consultation_id=consultation.id,
+                    medication_id=_resolve_medication_id(db, item.medication_id, item.drug_name),
                     drug_name=item.drug_name,
                     dose=_int_to_text(item.quantity),
                     route=None,

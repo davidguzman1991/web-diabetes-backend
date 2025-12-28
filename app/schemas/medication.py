@@ -1,11 +1,17 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, AliasChoices
 
 
 class MedicationBase(BaseModel):
-    nombre_generico: str
-    presentacion: str | None = None
-    forma: str | None = None
-    activo: bool = True
+    nombre_generico: str = Field(
+        validation_alias=AliasChoices("nombre_generico", "generic_name")
+    )
+    presentacion: str | None = Field(
+        default=None, validation_alias=AliasChoices("presentacion", "base_concentration")
+    )
+    forma: str | None = Field(default=None, validation_alias=AliasChoices("forma", "form"))
+    activo: bool = Field(default=True, validation_alias=AliasChoices("activo", "is_active"))
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class MedicationCreate(MedicationBase):
@@ -13,13 +19,23 @@ class MedicationCreate(MedicationBase):
 
 
 class MedicationUpdate(BaseModel):
-    nombre_generico: str | None = None
-    presentacion: str | None = None
-    forma: str | None = None
-    activo: bool | None = None
+    nombre_generico: str | None = Field(
+        default=None, validation_alias=AliasChoices("nombre_generico", "generic_name")
+    )
+    presentacion: str | None = Field(
+        default=None, validation_alias=AliasChoices("presentacion", "base_concentration")
+    )
+    forma: str | None = Field(
+        default=None, validation_alias=AliasChoices("forma", "form")
+    )
+    activo: bool | None = Field(
+        default=None, validation_alias=AliasChoices("activo", "is_active")
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class MedicationOut(MedicationBase):
     id: str
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

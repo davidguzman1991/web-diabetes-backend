@@ -2,6 +2,7 @@ import logging
 from datetime import date, datetime, time
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -10,12 +11,14 @@ from app.core.config import settings
 from app.core.dependencies import require_admin
 from app.core.security import get_password_hash
 from app.crud import patients as patient_crud
+from app.crud import diagnoses as diagnosis_crud
 from app.crud import medications as medication_crud
 from app.crud import visits as visit_crud
 from app.crud import consultas as consulta_crud
 from app.crud import consultations as consultation_crud
 from app.models.consultation import Consultation
 from app.models.consultation_medication import Medication
+from app.models.medication import MedicationCatalog
 from app.models.user import User
 from app.schemas.patient import (
     PatientCreate,
@@ -29,6 +32,7 @@ from app.schemas.visit import VisitCreate, VisitOut, VisitListItem
 from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
 from app.schemas.consultation import ConsultationCreate, ConsultationOut
 from app.schemas.user import PatientUserCreate, UserOut
+from app.schemas.diagnosis import DiagnosisOut
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 logger = logging.getLogger(__name__)
@@ -47,6 +51,19 @@ def _int_to_text(value: int | None) -> str | None:
     return str(int(value))
 
 
+def _resolve_medication_id(db: Session, medication_id: str | None, drug_name: str) -> str | None:
+    if medication_id:
+        return medication_id
+    cleaned = (drug_name or "").strip()
+    if not cleaned:
+        return None
+    return (
+        db.query(MedicationCatalog.id)
+        .filter(func.lower(MedicationCatalog.nombre_generico) == cleaned.lower())
+        .scalar()
+    )
+
+
 def _serialize_consultation(consultation: Consultation) -> dict:
     return {
         "id": str(consultation.id),
@@ -58,6 +75,7 @@ def _serialize_consultation(consultation: Consultation) -> dict:
             {
                 "id": str(med.id),
                 "consultation_id": str(med.consultation_id),
+                "medication_id": str(med.medication_id) if med.medication_id else None,
                 "drug_name": med.drug_name,
                 "quantity": med.quantity,
                 "description": med.description,
@@ -229,9 +247,16 @@ def delete_patient(patient_id: str, db: Session = Depends(get_db)):
 def list_medications(db: Session = Depends(get_db)):
     return medication_crud.list_all(db)
 
+@router.get("/medications/autocomplete", response_model=list[MedicationOut])
+def autocomplete_medications(q: str = "", db: Session = Depends(get_db)):
+    return medication_crud.autocomplete(db, q)
+
 
 @router.post("/medications", response_model=MedicationOut, status_code=status.HTTP_201_CREATED)
 def create_medication(data: MedicationCreate, db: Session = Depends(get_db)):
+    existing = medication_crud.get_by_generic_name(db, data.nombre_generico)
+    if existing:
+        raise HTTPException(status_code=409, detail="Medication already exists")
     return medication_crud.create(db, data)
 
 
@@ -240,6 +265,10 @@ def update_medication(med_id: str, data: MedicationUpdate, db: Session = Depends
     med = medication_crud.get(db, med_id)
     if not med:
         raise HTTPException(status_code=404, detail="Medication not found")
+    if data.nombre_generico:
+        existing = medication_crud.get_by_generic_name(db, data.nombre_generico)
+        if existing and str(existing.id) != str(med.id):
+            raise HTTPException(status_code=409, detail="Medication already exists")
     return medication_crud.update(db, med, data)
 
 
@@ -249,6 +278,11 @@ def delete_medication(med_id: str, db: Session = Depends(get_db)):
     if not med:
         raise HTTPException(status_code=404, detail="Medication not found")
     return medication_crud.deactivate(db, med)
+
+
+@router.get("/diagnoses/autocomplete", response_model=list[DiagnosisOut])
+def autocomplete_diagnoses(q: str = "", db: Session = Depends(get_db)):
+    return diagnosis_crud.autocomplete(db, q)
 
 
 @router.get("/patients/{patient_id}/visits", response_model=list[VisitListItem])
@@ -332,11 +366,13 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
         consultation = Consultation(**consultation_fields)
         db.add(consultation)
         db.flush()
+        diagnosis_crud.ensure(db, data.diagnosis)
 
         for index, item in enumerate(data.medications):
             sort_order = item.sort_order if item.sort_order is not None else index
             medication = Medication(
                 consultation_id=consultation.id,
+                medication_id=_resolve_medication_id(db, item.medication_id, item.drug_name),
                 drug_name=item.drug_name,
                 dose=_int_to_text(item.quantity),
                 route=None,
