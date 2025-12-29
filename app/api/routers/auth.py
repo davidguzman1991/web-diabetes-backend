@@ -1,16 +1,17 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.core.security import verify_password, create_access_token
 from app.models.user import User
-from app.schemas.auth import Token, PatientLogin, AdminLogin
+from app.schemas.auth import Token, PatientLogin, AdminLogin, PatientToken
 from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/patient/login", response_model=Token)
+@router.post("/patient/login", response_model=PatientToken)
 def login_patient(data: PatientLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.cedula).first()
     if not user or user.role.lower() != "patient":
@@ -19,8 +20,10 @@ def login_patient(data: PatientLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     if not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    token = create_access_token({"sub": str(user.id), "role": "PATIENT"})
-    return Token(access_token=token)
+    expires_delta = timedelta(days=7)
+    expires_at = datetime.utcnow() + expires_delta
+    token = create_access_token({"sub": str(user.id), "role": "PATIENT"}, expires_delta=expires_delta)
+    return PatientToken(access_token=token, expires_at=expires_at)
 
 
 @router.post("/admin/login", response_model=Token)

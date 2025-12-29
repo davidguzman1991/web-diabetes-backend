@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel
 
 
@@ -14,3 +15,7 @@ class PatientLogin(BaseModel):
 class AdminLogin(BaseModel):
     username: str
     password: str
+
+
+class PatientToken(Token):
+    expires_at: datetime
