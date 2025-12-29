@@ -19,6 +19,9 @@ class UserLogin(BaseModel):
 
 class UserOut(UserBase):
     id: str
+    cedula: str = ""
+    nombres: str = ""
+    apellidos: str = ""
 
     model_config = ConfigDict(from_attributes=True)
 

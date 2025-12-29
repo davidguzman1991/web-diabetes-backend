@@ -46,11 +46,22 @@ def logout():
 
 @router.get("/me", response_model=UserOut)
 def get_me(current_user = Depends(get_current_user)) -> UserOut:
+    cedula = ""
+    nombres = ""
+    apellidos = ""
+    if str(current_user.role).lower() == "patient":
+        cedula = getattr(current_user, "cedula", "") or getattr(current_user, "username", "") or ""
+        nombres = getattr(current_user, "nombres", "") or ""
+        apellidos = getattr(current_user, "apellidos", "") or ""
+
     return UserOut(
         id=str(current_user.id),
         username=current_user.username,
         role=current_user.role,
         activo=bool(current_user.activo),
+        cedula=cedula,
+        nombres=nombres,
+        apellidos=apellidos,
     )
 
 
