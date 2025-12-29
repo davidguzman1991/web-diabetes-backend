@@ -1,5 +1,6 @@
 import logging
 from datetime import date, datetime, time
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func
@@ -36,6 +37,7 @@ from app.schemas.diagnosis import DiagnosisOut
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 logger = logging.getLogger(__name__)
+get_current_admin = require_admin
 
 
 def _normalize_text(value: str | None) -> str | None:
@@ -432,6 +434,22 @@ def list_consultations(cedula: str, db: Session = Depends(get_db)):
     patient = _get_patient(db, cedula)
     consultations = consultation_crud.list_by_patient(db, patient.id)
     return [_serialize_consultation(item) for item in consultations]
+
+
+@router.get("/consultations/{consultation_id}", response_model=ConsultationOut)
+def get_consultation(
+    consultation_id: UUID,
+    db: Session = Depends(get_db),
+    _current_admin=Depends(get_current_admin),
+):
+    consultation = (
+        db.query(Consultation)
+        .filter(Consultation.id == consultation_id)
+        .first()
+    )
+    if not consultation:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return _serialize_consultation(consultation)
 
 
 
