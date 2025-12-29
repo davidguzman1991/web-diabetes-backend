@@ -447,22 +447,45 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
             else _coerce_float(_pick_signo(signos, "abdominal_circumference", "circunferencia_abdominal"))
         )
 
+        diagnosis = _normalize_text(data.diagnosis) or _normalize_text(getattr(data, "diagnostico", None))
+        notes = (
+            _normalize_text(data.notes)
+            or _normalize_text(getattr(data, "notas_medicas", None))
+            or _normalize_text(getattr(data, "notas", None))
+        )
+        indications = _normalize_text(data.indications) or _normalize_text(
+            getattr(data, "indicaciones", None)
+        )
+        reason_for_visit = _normalize_text(data.reason_for_visit) or _normalize_text(
+            getattr(data, "motivo_consulta", None)
+        )
+        current_illness = _normalize_text(data.current_illness) or _normalize_text(
+            getattr(data, "historia_actual", None)
+        )
+        physical_exam = _normalize_text(data.physical_exam) or _normalize_text(
+            getattr(data, "examen_fisico", None)
+        )
+        requested_exams = _normalize_text(data.requested_exams) or _normalize_text(
+            getattr(data, "examenes_solicitados", None)
+        )
+        next_visit_date = data.next_visit_date or getattr(data, "proxima_cita", None)
+
         consultation_fields = {
             "patient_id": patient.id,
-            "diagnosis": data.diagnosis,
-            "notes": data.notes,
-            "indications": data.indications,
+            "diagnosis": diagnosis,
+            "notes": notes,
+            "indications": indications,
             "weight": weight_value,
             "height": height_value,
             "blood_pressure": blood_pressure_value,
             "heart_rate": heart_rate_value,
             "oxygen_saturation": oxygen_value,
             "abdominal_circumference": abdominal_value,
-            "reason_for_visit": data.reason_for_visit,
-            "current_illness": data.current_illness,
-            "physical_exam": data.physical_exam,
-            "requested_exams": data.requested_exams,
-            "next_visit_date": data.next_visit_date,
+            "reason_for_visit": reason_for_visit,
+            "current_illness": current_illness,
+            "physical_exam": physical_exam,
+            "requested_exams": requested_exams,
+            "next_visit_date": next_visit_date,
         }
         if created_at is not None:
             consultation_fields["created_at"] = created_at
