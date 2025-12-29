@@ -22,6 +22,7 @@ class UserOut(UserBase):
     cedula: str = ""
     nombres: str = ""
     apellidos: str = ""
+    full_name: str = ""
 
     model_config = ConfigDict(from_attributes=True)
 

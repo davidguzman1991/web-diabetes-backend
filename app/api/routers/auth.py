@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.core.security import verify_password, create_access_token
+from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.auth import Token, PatientLogin, AdminLogin, PatientToken
 from app.schemas.user import UserOut
@@ -13,7 +14,14 @@ router = APIRouter(prefix="/auth")
 
 @router.post("/patient/login", response_model=PatientToken)
 def login_patient(data: PatientLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == data.cedula).first()
+    result = (
+        db.query(User, Patient)
+        .outerjoin(Patient, Patient.cedula == User.username)
+        .filter(User.username == data.cedula)
+        .first()
+    )
+    user = result[0] if result else None
+    patient = result[1] if result else None
     if not user or user.role.lower() != "patient":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.activo:
@@ -23,7 +31,17 @@ def login_patient(data: PatientLogin, db: Session = Depends(get_db)):
     expires_delta = timedelta(days=7)
     expires_at = datetime.utcnow() + expires_delta
     token = create_access_token({"sub": str(user.id), "role": "PATIENT"}, expires_delta=expires_delta)
-    return PatientToken(access_token=token, expires_at=expires_at)
+    nombres = patient.nombres if patient else ""
+    apellidos = patient.apellidos if patient else ""
+    full_name = f"{nombres} {apellidos}".strip()
+    return PatientToken(
+        access_token=token,
+        expires_at=expires_at,
+        cedula=patient.cedula if patient else user.username,
+        nombres=nombres or "",
+        apellidos=apellidos or "",
+        full_name=full_name,
+    )
 
 
 @router.post("/admin/login", response_model=Token)
@@ -45,14 +63,24 @@ def logout():
 
 
 @router.get("/me", response_model=UserOut)
-def get_me(current_user = Depends(get_current_user)) -> UserOut:
+def get_me(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserOut:
     cedula = ""
     nombres = ""
     apellidos = ""
+    full_name = ""
+
     if str(current_user.role).lower() == "patient":
         cedula = getattr(current_user, "cedula", "") or getattr(current_user, "username", "") or ""
-        nombres = getattr(current_user, "nombres", "") or ""
-        apellidos = getattr(current_user, "apellidos", "") or ""
+        patient = None
+        if cedula:
+            patient = db.query(Patient).filter(Patient.cedula == cedula).first()
+        if patient:
+            nombres = patient.nombres or ""
+            apellidos = patient.apellidos or ""
+        full_name = f"{nombres} {apellidos}".strip()
 
     return UserOut(
         id=str(current_user.id),
@@ -62,6 +90,7 @@ def get_me(current_user = Depends(get_current_user)) -> UserOut:
         cedula=cedula,
         nombres=nombres,
         apellidos=apellidos,
+        full_name=full_name,
     )
 
 
