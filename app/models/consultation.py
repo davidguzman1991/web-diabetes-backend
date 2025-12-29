@@ -36,3 +36,52 @@ class Consultation(Base):
         order_by="Medication.sort_order",
     )
     labs = relationship("ConsultaLab", back_populates="consultation", cascade="all, delete-orphan")
+
+    # Spanish aliases for legacy payloads/consumers without changing DB columns.
+    @property
+    def diagnostico(self) -> str | None:
+        return self.diagnosis
+
+    @diagnostico.setter
+    def diagnostico(self, value: str | None) -> None:
+        self.diagnosis = value
+
+    @property
+    def notas_medicas(self) -> str | None:
+        return self.notes
+
+    @notas_medicas.setter
+    def notas_medicas(self, value: str | None) -> None:
+        self.notes = value
+
+    @property
+    def indicaciones(self) -> str | None:
+        return self.indications
+
+    @indicaciones.setter
+    def indicaciones(self, value: str | None) -> None:
+        self.indications = value
+
+    @property
+    def motivo_consulta(self) -> str | None:
+        return self.reason_for_visit
+
+    @motivo_consulta.setter
+    def motivo_consulta(self, value: str | None) -> None:
+        self.reason_for_visit = value
+
+    @property
+    def historia_actual(self) -> str | None:
+        return self.current_illness
+
+    @historia_actual.setter
+    def historia_actual(self, value: str | None) -> None:
+        self.current_illness = value
+
+    @property
+    def examen_fisico(self) -> str | None:
+        return self.physical_exam
+
+    @examen_fisico.setter
+    def examen_fisico(self, value: str | None) -> None:
+        self.physical_exam = value

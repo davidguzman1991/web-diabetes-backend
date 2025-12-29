@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.core.config import settings
@@ -31,7 +31,7 @@ from app.schemas.patient import (
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
 from app.schemas.visit import VisitCreate, VisitOut, VisitListItem
 from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
-from app.schemas.consultation import ConsultationCreate, ConsultationOut
+from app.schemas.consultation import ConsultationCreate, ConsultationOut, ConsultationResponse
 from app.schemas.user import PatientUserCreate, UserOut
 from app.schemas.diagnosis import DiagnosisOut
 
@@ -436,7 +436,7 @@ def list_consultations(cedula: str, db: Session = Depends(get_db)):
     return [_serialize_consultation(item) for item in consultations]
 
 
-@router.get("/consultations/{consultation_id}", response_model=ConsultationOut)
+@router.get("/consultations/{consultation_id}", response_model=ConsultationResponse)
 def get_consultation(
     consultation_id: UUID,
     db: Session = Depends(get_db),
@@ -444,12 +444,13 @@ def get_consultation(
 ):
     consultation = (
         db.query(Consultation)
+        .options(joinedload(Consultation.medications), joinedload(Consultation.patient))
         .filter(Consultation.id == consultation_id)
         .first()
     )
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
-    return _serialize_consultation(consultation)
+    return consultation
 
 
 

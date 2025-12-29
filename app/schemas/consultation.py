@@ -3,6 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, AliasChoices, field_validator, ConfigDict
 
 from app.schemas.consultation_medication import MedicationCreate, MedicationOut
+from app.schemas.patient import PatientLookupOut
 
 
 class ConsultationCreate(BaseModel):
@@ -12,7 +13,7 @@ class ConsultationCreate(BaseModel):
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
     )
     notes: str | None = Field(
-        default=None, validation_alias=AliasChoices("notas", "notes")
+        default=None, validation_alias=AliasChoices("notas", "notes", "notas_medicas")
     )
     indications: str | None = Field(
         default=None, validation_alias=AliasChoices("indicaciones", "indications")
@@ -23,9 +24,15 @@ class ConsultationCreate(BaseModel):
     heart_rate: int | None = None
     oxygen_saturation: int | None = None
     abdominal_circumference: float | None = None
-    reason_for_visit: str | None = None
-    current_illness: str | None = None
-    physical_exam: str | None = None
+    reason_for_visit: str | None = Field(
+        default=None, validation_alias=AliasChoices("motivo_consulta", "reason_for_visit")
+    )
+    current_illness: str | None = Field(
+        default=None, validation_alias=AliasChoices("historia_actual", "current_illness")
+    )
+    physical_exam: str | None = Field(
+        default=None, validation_alias=AliasChoices("examen_fisico", "physical_exam")
+    )
     requested_exams: str | None = None
     next_visit_date: date | None = None
     medications: list[MedicationCreate]
@@ -47,7 +54,7 @@ class ConsultationOut(BaseModel):
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
     )
     notes: str | None = Field(
-        default=None, validation_alias=AliasChoices("notas", "notes")
+        default=None, validation_alias=AliasChoices("notas", "notes", "notas_medicas")
     )
     indications: str | None = Field(
         default=None, validation_alias=AliasChoices("indicaciones", "indications")
@@ -58,9 +65,15 @@ class ConsultationOut(BaseModel):
     heart_rate: int | None = None
     oxygen_saturation: int | None = None
     abdominal_circumference: float | None = None
-    reason_for_visit: str | None = None
-    current_illness: str | None = None
-    physical_exam: str | None = None
+    reason_for_visit: str | None = Field(
+        default=None, validation_alias=AliasChoices("motivo_consulta", "reason_for_visit")
+    )
+    current_illness: str | None = Field(
+        default=None, validation_alias=AliasChoices("historia_actual", "current_illness")
+    )
+    physical_exam: str | None = Field(
+        default=None, validation_alias=AliasChoices("examen_fisico", "physical_exam")
+    )
     requested_exams: str | None = None
     next_visit_date: date | None = None
     medications: list[MedicationOut]
@@ -100,3 +113,42 @@ class AdminConsultationDetailOut(BaseModel):
     medications: list[AdminConsultationMedicationOut]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class MedicationResponse(MedicationOut):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConsultationResponse(BaseModel):
+    id: UUID
+    created_at: datetime
+    patient: PatientLookupOut
+    diagnosis: str | None = Field(
+        default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
+    )
+    notes: str | None = Field(
+        default=None, validation_alias=AliasChoices("notas", "notes", "notas_medicas")
+    )
+    indications: str | None = Field(
+        default=None, validation_alias=AliasChoices("indicaciones", "indications")
+    )
+    weight: float | None = None
+    height: float | None = None
+    blood_pressure: str | None = None
+    heart_rate: int | None = None
+    oxygen_saturation: int | None = None
+    abdominal_circumference: float | None = None
+    reason_for_visit: str | None = Field(
+        default=None, validation_alias=AliasChoices("motivo_consulta", "reason_for_visit")
+    )
+    current_illness: str | None = Field(
+        default=None, validation_alias=AliasChoices("historia_actual", "current_illness")
+    )
+    physical_exam: str | None = Field(
+        default=None, validation_alias=AliasChoices("examen_fisico", "physical_exam")
+    )
+    requested_exams: str | None = None
+    next_visit_date: date | None = None
+    medications: list[MedicationResponse]
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
