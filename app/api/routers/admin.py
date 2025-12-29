@@ -30,7 +30,11 @@ from app.schemas.patient import (
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
 from app.schemas.visit import VisitCreate, VisitOut, VisitListItem
 from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
-from app.schemas.consultation import ConsultationCreate, ConsultationOut
+from app.schemas.consultation import (
+    ConsultationCreate,
+    ConsultationOut,
+    AdminConsultationDetailOut,
+)
 from app.schemas.user import PatientUserCreate, UserOut
 from app.schemas.diagnosis import DiagnosisOut
 
@@ -432,6 +436,40 @@ def list_consultations(cedula: str, db: Session = Depends(get_db)):
     patient = _get_patient(db, cedula)
     consultations = consultation_crud.list_by_patient(db, patient.id)
     return [_serialize_consultation(item) for item in consultations]
+
+
+@router.get("/consultations/{consultation_id}", response_model=AdminConsultationDetailOut)
+def get_consultation_detail(consultation_id: str, db: Session = Depends(get_db)):
+    consultation = consultation_crud.get(db, consultation_id)
+    if not consultation:
+        raise HTTPException(status_code=404, detail="Consulta no existe")
+
+    patient = patient_crud.get(db, consultation.patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no existe")
+
+    full_name = " ".join(filter(None, [patient.nombres, patient.apellidos])).strip()
+    medications = sorted(
+        consultation.medications or [],
+        key=lambda med: med.sort_order or 0,
+    )
+
+    return {
+        "id": consultation.id,
+        "date": consultation.created_at,
+        "diagnosis": consultation.diagnosis,
+        "indications": consultation.indications,
+        "patient_full_name": full_name or "Paciente",
+        "medications": [
+            {
+                "drug_name": med.drug_name,
+                "quantity": med.quantity,
+                "description": med.description,
+                "duration_days": med.duration_days,
+            }
+            for med in medications
+        ],
+    }
 
 
 @router.get("/patients/{cedula}/current-medications", response_model=ConsultationOut)

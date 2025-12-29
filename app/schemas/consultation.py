@@ -80,3 +80,23 @@ class ConsultationSummaryOut(BaseModel):
     next_visit_date: date | None = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class AdminConsultationMedicationOut(BaseModel):
+    drug_name: str
+    quantity: int | None = None
+    description: str | None = None
+    duration_days: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminConsultationDetailOut(BaseModel):
+    id: UUID
+    date: datetime
+    diagnosis: str | None = None
+    indications: str | None = None
+    patient_full_name: str
+    medications: list[AdminConsultationMedicationOut]
+
+    model_config = ConfigDict(from_attributes=True)
