@@ -39,6 +39,14 @@ class PatientLookupOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PatientSearchOut(BaseModel):
+    cedula: str
+    nombres: str
+    apellidos: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ResetPatientPasswordRequest(BaseModel):
     new_password: str
 

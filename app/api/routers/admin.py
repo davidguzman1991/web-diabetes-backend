@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
@@ -21,6 +21,7 @@ from app.crud import consultations as consultation_crud
 from app.models.consultation import Consultation
 from app.models.consulta_lab import ConsultaLab
 from app.models.consultation_medication import Medication
+from app.models.patient import Patient
 from app.models.medication import MedicationCatalog
 from app.models.user import User
 from app.schemas.patient import (
@@ -28,6 +29,7 @@ from app.schemas.patient import (
     PatientUpdate,
     PatientOut,
     PatientLookupOut,
+    PatientSearchOut,
     ResetPatientPasswordRequest,
 )
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
@@ -189,6 +191,39 @@ def list_patients(cedula: str | None = None, db: Session = Depends(get_db)):
     except Exception as exc:
         logger.exception("Failed to list patients", extra={"cedula": cedula})
         raise HTTPException(status_code=500, detail="Error fetching patients") from exc
+
+
+@router.get("/patients/search", response_model=list[PatientSearchOut])
+def search_patients(q: str = "", db: Session = Depends(get_db)):
+    cleaned = q.strip()
+    if not cleaned:
+        return []
+    pattern = f"%{cleaned}%"
+    try:
+        patients = (
+            db.query(Patient)
+            .filter(
+                or_(
+                    Patient.nombres.ilike(pattern),
+                    Patient.apellidos.ilike(pattern),
+                )
+            )
+            .order_by(Patient.apellidos.asc(), Patient.nombres.asc())
+            .limit(10)
+            .all()
+        )
+    except Exception as exc:
+        logger.exception("Failed to search patients", extra={"query": cleaned})
+        raise HTTPException(status_code=500, detail="Error searching patients") from exc
+
+    return [
+        PatientSearchOut(
+            cedula=patient.cedula,
+            nombres=patient.nombres or "",
+            apellidos=patient.apellidos or "",
+        )
+        for patient in patients
+    ]
 
 
 @router.post("/patients", response_model=dict[str, bool | str], status_code=status.HTTP_201_CREATED)
