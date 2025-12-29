@@ -19,3 +19,7 @@ class AdminLogin(BaseModel):
 
 class PatientToken(Token):
     expires_at: datetime
+    cedula: str = ""
+    nombres: str = ""
+    apellidos: str = ""
+    full_name: str = ""

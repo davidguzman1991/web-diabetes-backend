@@ -191,30 +191,42 @@ def list_patients(cedula: str | None = None, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error fetching patients") from exc
 
 
-@router.post("/patients", response_model=PatientOut | UserOut, status_code=status.HTTP_201_CREATED)
+@router.post("/patients", response_model=dict[str, bool | str], status_code=status.HTTP_201_CREATED)
 def create_patient(data: PatientCreate | PatientUserCreate, db: Session = Depends(get_db)):
     if isinstance(data, PatientUserCreate):
         user = db.query(User).filter(User.username == data.username).first()
         if user:
             if not data.reset_password:
                 raise HTTPException(status_code=409, detail="Username already exists")
-            user.password_hash = get_password_hash(data.password)
-            user.role = "patient"
-            user.activo = True
-            db.commit()
-            db.refresh(user)
-            return UserOut(id=str(user.id), username=user.username, role=user.role, activo=bool(user.activo))
+            try:
+                user.password_hash = get_password_hash(data.password)
+                user.role = "patient"
+                user.activo = True
+                db.commit()
+            except HTTPException:
+                db.rollback()
+                raise
+            except Exception:
+                db.rollback()
+                raise HTTPException(status_code=400, detail="Error al crear paciente")
+            return {"success": True, "message": "Paciente creado con éxito"}
 
-        user = User(
-            username=data.username,
-            password_hash=get_password_hash(data.password),
-            role="patient",
-            activo=True,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return UserOut(id=str(user.id), username=user.username, role=user.role, activo=bool(user.activo))
+        try:
+            user = User(
+                username=data.username,
+                password_hash=get_password_hash(data.password),
+                role="patient",
+                activo=True,
+            )
+            db.add(user)
+            db.commit()
+        except HTTPException:
+            db.rollback()
+            raise
+        except Exception:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Error al crear paciente")
+        return {"success": True, "message": "Paciente creado con éxito"}
 
     existing = patient_crud.get_by_cedula(db, data.cedula)
     if existing:
@@ -223,7 +235,7 @@ def create_patient(data: PatientCreate | PatientUserCreate, db: Session = Depend
     seed = data.password or patient_crud.normalize_password_seed(data.apellidos, data.nombres)
     password_hash = get_password_hash(seed)
     try:
-        patient = patient_crud.create(db, data, password_hash=password_hash, commit=False)
+        patient_crud.create(db, data, password_hash=password_hash, commit=False)
 
         username = data.cedula
         user = db.query(User).filter(User.username == username).first()
@@ -241,18 +253,13 @@ def create_patient(data: PatientCreate | PatientUserCreate, db: Session = Depend
             db.add(user)
 
         db.commit()
-        db.refresh(patient)
-        return patient
     except HTTPException:
         db.rollback()
         raise
-    except IntegrityError as exc:
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Cedula already exists") from exc
-    except Exception as exc:
-        db.rollback()
-        logger.exception("Failed to create patient", extra={"cedula": data.cedula})
-        raise HTTPException(status_code=500, detail="Error creating patient") from exc
+        raise HTTPException(status_code=400, detail="Error al crear paciente")
+    return {"success": True, "message": "Paciente creado con éxito"}
 
 
 @router.get("/patients/{patient_id}", response_model=PatientOut)
