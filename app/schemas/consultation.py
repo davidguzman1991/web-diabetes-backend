@@ -3,7 +3,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field, AliasChoices, field_validator, ConfigDict
 
 from app.schemas.consultation_medication import MedicationCreate, MedicationOut
-from app.schemas.patient import PatientLookupOut
 
 
 class ConsultationCreate(BaseModel):
@@ -33,8 +32,14 @@ class ConsultationCreate(BaseModel):
     physical_exam: str | None = Field(
         default=None, validation_alias=AliasChoices("examen_fisico", "physical_exam")
     )
-    requested_exams: str | None = None
-    next_visit_date: date | None = None
+    requested_exams: str | None = Field(
+        default=None, validation_alias=AliasChoices("examenes_solicitados", "requested_exams")
+    )
+    next_visit_date: date | None = Field(
+        default=None, validation_alias=AliasChoices("proxima_cita", "next_visit_date")
+    )
+    signos_vitales: dict | None = None
+    laboratorios: list[dict] | None = None
     medications: list[MedicationCreate]
 
     @field_validator("medications")
@@ -74,8 +79,12 @@ class ConsultationOut(BaseModel):
     physical_exam: str | None = Field(
         default=None, validation_alias=AliasChoices("examen_fisico", "physical_exam")
     )
-    requested_exams: str | None = None
-    next_visit_date: date | None = None
+    requested_exams: str | None = Field(
+        default=None, validation_alias=AliasChoices("examenes_solicitados", "requested_exams")
+    )
+    next_visit_date: date | None = Field(
+        default=None, validation_alias=AliasChoices("proxima_cita", "next_visit_date")
+    )
     medications: list[MedicationOut]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -119,10 +128,20 @@ class MedicationResponse(MedicationOut):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ConsultationPatientOut(BaseModel):
+    id: UUID | str
+    cedula: str | None = None
+    nombres: str | None = None
+    apellidos: str | None = None
+    fecha_nacimiento: date | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ConsultationResponse(BaseModel):
     id: UUID
     created_at: datetime
-    patient: PatientLookupOut
+    patient: ConsultationPatientOut | None = None
     diagnosis: str | None = Field(
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
     )
@@ -147,8 +166,23 @@ class ConsultationResponse(BaseModel):
     physical_exam: str | None = Field(
         default=None, validation_alias=AliasChoices("examen_fisico", "physical_exam")
     )
-    requested_exams: str | None = None
-    next_visit_date: date | None = None
-    medications: list[MedicationResponse]
+    requested_exams: str | None = Field(
+        default=None, validation_alias=AliasChoices("examenes_solicitados", "requested_exams")
+    )
+    next_visit_date: date | None = Field(
+        default=None, validation_alias=AliasChoices("proxima_cita", "next_visit_date")
+    )
+    diagnostico: str | None = None
+    notas: str | None = None
+    notas_medicas: str | None = None
+    indicaciones: str | None = None
+    motivo_consulta: str | None = None
+    historia_actual: str | None = None
+    examen_fisico: str | None = None
+    examenes_solicitados: str | None = None
+    proxima_cita: date | None = None
+    signos_vitales: dict | None = None
+    laboratorios: list[dict] = Field(default_factory=list)
+    medications: list[MedicationResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

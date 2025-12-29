@@ -55,6 +55,14 @@ class Consultation(Base):
         self.notes = value
 
     @property
+    def notas(self) -> str | None:
+        return self.notes
+
+    @notas.setter
+    def notas(self, value: str | None) -> None:
+        self.notes = value
+
+    @property
     def indicaciones(self) -> str | None:
         return self.indications
 
@@ -85,3 +93,47 @@ class Consultation(Base):
     @examen_fisico.setter
     def examen_fisico(self, value: str | None) -> None:
         self.physical_exam = value
+
+    @property
+    def examenes_solicitados(self) -> str | None:
+        return self.requested_exams
+
+    @examenes_solicitados.setter
+    def examenes_solicitados(self, value: str | None) -> None:
+        self.requested_exams = value
+
+    @property
+    def proxima_cita(self):
+        return self.next_visit_date
+
+    @proxima_cita.setter
+    def proxima_cita(self, value) -> None:
+        self.next_visit_date = value
+
+    @property
+    def signos_vitales(self) -> dict:
+        return {
+            "peso": self.weight,
+            "talla": self.height,
+            "presion_arterial": self.blood_pressure,
+            "frecuencia_cardiaca": self.heart_rate,
+            "saturacion_oxigeno": self.oxygen_saturation,
+            "circunferencia_abdominal": self.abdominal_circumference,
+        }
+
+    @property
+    def laboratorios(self) -> list[dict]:
+        labs = self.labs or []
+        payload = []
+        for lab in labs:
+            payload.append(
+                {
+                    "lab_id": str(lab.lab_id) if lab.lab_id else None,
+                    "lab_nombre": getattr(lab.lab, "nombre", None) if lab.lab else None,
+                    "valor_num": lab.valor_num,
+                    "valor_texto": lab.valor_texto,
+                    "unidad_snapshot": lab.unidad_snapshot,
+                    "rango_ref_snapshot": lab.rango_ref_snapshot,
+                }
+            )
+        return payload

@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import date, datetime, time
 from uuid import UUID
@@ -18,6 +19,7 @@ from app.crud import visits as visit_crud
 from app.crud import consultas as consulta_crud
 from app.crud import consultations as consultation_crud
 from app.models.consultation import Consultation
+from app.models.consulta_lab import ConsultaLab
 from app.models.consultation_medication import Medication
 from app.models.medication import MedicationCatalog
 from app.models.user import User
@@ -51,6 +53,52 @@ def _int_to_text(value: int | None) -> str | None:
     if value is None:
         return None
     return str(int(value))
+
+
+def _parse_signos_vitales(value) -> dict:
+    if not value:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _pick_signo(signos: dict, *keys: str):
+    for key in keys:
+        if key in signos:
+            return signos[key]
+    return None
+
+
+def _coerce_float(value):
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_int(value):
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_str(value):
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
 
 
 def _resolve_medication_id(db: Session, medication_id: str | None, drug_name: str) -> str | None:
@@ -367,17 +415,49 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
                         detail="Fecha invalida, usa YYYY-MM-DD",
                     ) from exc
 
+        signos = _parse_signos_vitales(getattr(data, "signos_vitales", None))
+        weight_value = (
+            data.weight
+            if data.weight is not None
+            else _coerce_float(_pick_signo(signos, "weight", "peso"))
+        )
+        height_value = (
+            data.height
+            if data.height is not None
+            else _coerce_float(_pick_signo(signos, "height", "talla"))
+        )
+        blood_pressure_value = (
+            data.blood_pressure
+            if data.blood_pressure is not None
+            else _coerce_str(_pick_signo(signos, "blood_pressure", "presion_arterial"))
+        )
+        heart_rate_value = (
+            data.heart_rate
+            if data.heart_rate is not None
+            else _coerce_int(_pick_signo(signos, "heart_rate", "frecuencia_cardiaca"))
+        )
+        oxygen_value = (
+            data.oxygen_saturation
+            if data.oxygen_saturation is not None
+            else _coerce_int(_pick_signo(signos, "oxygen_saturation", "saturacion_oxigeno"))
+        )
+        abdominal_value = (
+            data.abdominal_circumference
+            if data.abdominal_circumference is not None
+            else _coerce_float(_pick_signo(signos, "abdominal_circumference", "circunferencia_abdominal"))
+        )
+
         consultation_fields = {
             "patient_id": patient.id,
             "diagnosis": data.diagnosis,
             "notes": data.notes,
             "indications": data.indications,
-            "weight": data.weight,
-            "height": data.height,
-            "blood_pressure": data.blood_pressure,
-            "heart_rate": data.heart_rate,
-            "oxygen_saturation": data.oxygen_saturation,
-            "abdominal_circumference": data.abdominal_circumference,
+            "weight": weight_value,
+            "height": height_value,
+            "blood_pressure": blood_pressure_value,
+            "heart_rate": heart_rate_value,
+            "oxygen_saturation": oxygen_value,
+            "abdominal_circumference": abdominal_value,
             "reason_for_visit": data.reason_for_visit,
             "current_illness": data.current_illness,
             "physical_exam": data.physical_exam,
@@ -442,15 +522,27 @@ def get_consultation(
     db: Session = Depends(get_db),
     _current_admin=Depends(get_current_admin),
 ):
-    consultation = (
-        db.query(Consultation)
-        .options(joinedload(Consultation.medications), joinedload(Consultation.patient))
-        .filter(Consultation.id == consultation_id)
-        .first()
-    )
-    if not consultation:
-        raise HTTPException(status_code=404, detail="Consultation not found")
-    return consultation
+    logger.info("Fetching consultation %s", consultation_id)
+    try:
+        consultation = (
+            db.query(Consultation)
+            .options(
+                joinedload(Consultation.medications),
+                joinedload(Consultation.patient),
+                joinedload(Consultation.labs).joinedload(ConsultaLab.lab),
+            )
+            .filter(Consultation.id == consultation_id)
+            .first()
+        )
+        if not consultation:
+            logger.info("Consultation not found %s", consultation_id)
+            raise HTTPException(status_code=404, detail="Consultation not found")
+        return consultation
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to fetch consultation %s", consultation_id)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 
