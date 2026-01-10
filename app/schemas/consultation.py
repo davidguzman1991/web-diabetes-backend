@@ -8,6 +8,7 @@ from app.schemas.consultation_medication import MedicationCreate, MedicationOut
 class ConsultationCreate(BaseModel):
     cedula: str
     fecha: date | datetime | None = None
+    consultation_date: date | None = None
     diagnosis: str | None = Field(
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
     )
@@ -55,6 +56,7 @@ class ConsultationCreate(BaseModel):
 class ConsultationOut(BaseModel):
     id: UUID
     created_at: datetime
+    consultation_date: date | None = None
     diagnosis: str | None = Field(
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")
     )
@@ -141,6 +143,7 @@ class ConsultationPatientOut(BaseModel):
 class ConsultationResponse(BaseModel):
     id: UUID
     created_at: datetime
+    consultation_date: date | None = None
     patient: ConsultationPatientOut | None = None
     diagnosis: str | None = Field(
         default=None, validation_alias=AliasChoices("diagnostico", "diagnosis")

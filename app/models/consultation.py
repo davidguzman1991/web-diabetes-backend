@@ -27,6 +27,7 @@ class Consultation(Base):
     requested_exams = Column(Text, nullable=True)
     next_visit_date = Column(Date, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    consultation_date = Column(Date, nullable=True, index=True)
 
     patient = relationship("Patient", back_populates="consultations")
     medications = relationship(

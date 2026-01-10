@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 
 
 class AdminConsultationListItem(BaseModel):
     consultation_id: str
     created_at: datetime
+    consultation_date: date | None = None
     patient_username: str | None = None
     patient_name: str | None = None
     patient_cedula: str | None = None

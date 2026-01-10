@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
@@ -135,6 +135,7 @@ def _serialize_consultation(consultation: Consultation) -> dict:
         "physical_exam": consultation.physical_exam,
         "requested_exams": consultation.requested_exams,
         "next_visit_date": consultation.next_visit_date,
+        "consultation_date": consultation.consultation_date,
         "medications": [
             {
                 "id": str(med.id),
@@ -456,20 +457,24 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
         )
 
     try:
-        created_at = None
-        if getattr(data, "fecha", None) is not None:
+        consultation_date_value = None
+        if getattr(data, "consultation_date", None) is not None:
+            consultation_date_value = data.consultation_date
+        elif getattr(data, "fecha", None) is not None:
             if isinstance(data.fecha, datetime):
-                created_at = data.fecha
+                consultation_date_value = data.fecha.date()
             elif isinstance(data.fecha, date):
-                created_at = datetime.combine(data.fecha, time.min)
+                consultation_date_value = data.fecha
             elif isinstance(data.fecha, str):
                 try:
-                    created_at = datetime.combine(date.fromisoformat(data.fecha), time.min)
+                    consultation_date_value = date.fromisoformat(data.fecha)
                 except ValueError as exc:
                     raise HTTPException(
                         status_code=400,
                         detail="Fecha invalida, usa YYYY-MM-DD",
                     ) from exc
+        if consultation_date_value is None:
+            consultation_date_value = date.today()
 
         signos = _parse_signos_vitales(getattr(data, "signos_vitales", None))
         weight_value = (
@@ -542,9 +547,8 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
             "physical_exam": physical_exam,
             "requested_exams": requested_exams,
             "next_visit_date": next_visit_date,
+            "consultation_date": consultation_date_value,
         }
-        if created_at is not None:
-            consultation_fields["created_at"] = created_at
 
         consultation = Consultation(**consultation_fields)
         db.add(consultation)
@@ -623,11 +627,11 @@ def list_consultations_global(
     if from_date > to_date:
         raise HTTPException(status_code=400, detail="Rango de fechas invalido")
 
-    start_at = datetime.combine(from_date, time.min)
-    end_at = datetime.combine(to_date, time.max)
-
     search = (query or "").strip()
-    filters = [Consultation.created_at >= start_at, Consultation.created_at <= end_at]
+    filters = [
+        Consultation.consultation_date >= from_date,
+        Consultation.consultation_date <= to_date,
+    ]
     if search:
         pattern = f"%{search}%"
         query_filters = [
@@ -643,6 +647,7 @@ def list_consultations_global(
         db.query(
             Consultation.id,
             Consultation.created_at,
+            Consultation.consultation_date,
             Consultation.diagnosis,
             Consultation.notes,
             Patient.cedula,
@@ -651,7 +656,7 @@ def list_consultations_global(
         )
         .join(Patient, Consultation.patient_id == Patient.id)
         .filter(*filters)
-        .order_by(Consultation.created_at.desc())
+        .order_by(Consultation.consultation_date.desc(), Consultation.created_at.desc())
         .limit(500)
         .all()
     )
@@ -666,6 +671,7 @@ def list_consultations_global(
             {
                 "consultation_id": str(row.id),
                 "created_at": row.created_at,
+                "consultation_date": row.consultation_date,
                 "patient_username": row.cedula,
                 "patient_name": full_name,
                 "patient_cedula": row.cedula,
