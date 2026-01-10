@@ -43,7 +43,7 @@ from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
 from app.schemas.consultation import ConsultationCreate, ConsultationOut, ConsultationResponse
 from app.schemas.user import PatientUserCreate, UserOut
 from app.schemas.diagnosis import DiagnosisOut
-from app.schemas.admin import AdminConsultationListResponse
+from app.schemas.admin import AdminConsultationListResponse, AdminMedicationTopResponse
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 logger = logging.getLogger(__name__)
@@ -175,6 +175,34 @@ def get_admin_stats(
         "total_patients": total_patients,
         "total_consultations": total_consultations,
     }
+
+
+@router.get("/audit/medications/top", response_model=AdminMedicationTopResponse)
+def get_top_medications(
+    from_date: date = Query(..., alias="from"),
+    to_date: date = Query(..., alias="to"),
+    limit: int = Query(20, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    if from_date > to_date:
+        raise HTTPException(status_code=422, detail="from must be <= to")
+    date_value = func.coalesce(
+        Consultation.consultation_date, func.date(Consultation.created_at)
+    )
+    name_value = func.coalesce(MedicationCatalog.nombre_generico, Medication.drug_name)
+    rows = (
+        db.query(name_value.label("nombre"), func.count(Medication.id).label("count"))
+        .join(Consultation, Medication.consultation_id == Consultation.id)
+        .outerjoin(MedicationCatalog, Medication.medication_id == MedicationCatalog.id)
+        .filter(date_value >= from_date, date_value <= to_date)
+        .filter(name_value.isnot(None))
+        .group_by(name_value)
+        .order_by(func.count(Medication.id).desc(), name_value.asc())
+        .limit(limit)
+        .all()
+    )
+    items = [{"nombre": row.nombre, "count": int(row.count)} for row in rows]
+    return {"from": from_date, "to": to_date, "limit": limit, "items": items}
 
 
 def _get_patient_user(db: Session, username: str) -> User:
