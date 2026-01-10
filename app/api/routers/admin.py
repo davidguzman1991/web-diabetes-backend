@@ -1,8 +1,8 @@
 import json
 import logging
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
@@ -38,6 +38,7 @@ from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
 from app.schemas.consultation import ConsultationCreate, ConsultationOut, ConsultationResponse
 from app.schemas.user import PatientUserCreate, UserOut
 from app.schemas.diagnosis import DiagnosisOut
+from app.schemas.admin import AdminConsultationListResponse
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 logger = logging.getLogger(__name__)
@@ -592,6 +593,88 @@ def list_consultations(cedula: str, db: Session = Depends(get_db)):
     patient = _get_patient(db, cedula)
     consultations = consultation_crud.list_by_patient(db, patient.id)
     return [_serialize_consultation(item) for item in consultations]
+
+
+@router.get("/consultations/list", response_model=AdminConsultationListResponse)
+def list_consultations_global(
+    from_: str | None = Query(default=None, alias="from"),
+    to: str | None = None,
+    query: str | None = None,
+    db: Session = Depends(get_db),
+    _current_admin=Depends(require_admin),
+):
+    def parse_date(value: str, label: str) -> date:
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{label} invalida, usa YYYY-MM-DD",
+            ) from exc
+
+    today = date.today()
+    if not from_ and not to:
+        to_date = today
+        from_date = today - timedelta(days=6)
+    else:
+        from_date = parse_date(from_, "Fecha desde") if from_ else today - timedelta(days=6)
+        to_date = parse_date(to, "Fecha hasta") if to else today
+
+    if from_date > to_date:
+        raise HTTPException(status_code=400, detail="Rango de fechas invalido")
+
+    start_at = datetime.combine(from_date, time.min)
+    end_at = datetime.combine(to_date, time.max)
+
+    search = (query or "").strip()
+    filters = [Consultation.created_at >= start_at, Consultation.created_at <= end_at]
+    if search:
+        pattern = f"%{search}%"
+        query_filters = [
+            Patient.cedula.ilike(pattern),
+            Patient.nombres.ilike(pattern),
+            Patient.apellidos.ilike(pattern),
+        ]
+        if search.isdigit():
+            query_filters.insert(0, Patient.cedula == search)
+        filters.append(or_(*query_filters))
+
+    rows = (
+        db.query(
+            Consultation.id,
+            Consultation.created_at,
+            Consultation.diagnosis,
+            Consultation.notes,
+            Patient.cedula,
+            Patient.nombres,
+            Patient.apellidos,
+        )
+        .join(Patient, Consultation.patient_id == Patient.id)
+        .filter(*filters)
+        .order_by(Consultation.created_at.desc())
+        .limit(500)
+        .all()
+    )
+
+    items = []
+    for row in rows:
+        full_name = " ".join([row.nombres, row.apellidos]).strip() or None
+        note_preview = row.notes.strip() if row.notes else None
+        if note_preview and len(note_preview) > 160:
+            note_preview = f"{note_preview[:157]}..."
+        items.append(
+            {
+                "consultation_id": str(row.id),
+                "created_at": row.created_at,
+                "patient_username": row.cedula,
+                "patient_name": full_name,
+                "patient_cedula": row.cedula,
+                "diagnosis": row.diagnosis,
+                "note_preview": note_preview,
+            }
+        )
+
+    return {"items": items}
 
 
 @router.get("/consultations/{consultation_id}", response_model=ConsultationResponse)
