@@ -475,6 +475,11 @@ def create_consultation(data: ConsultationCreate, db: Session = Depends(get_db))
                     ) from exc
         if consultation_date_value is None:
             consultation_date_value = date.today()
+        print(
+            "create_consultation consultation_date received:",
+            getattr(data, "consultation_date", None),
+        )
+        print("create_consultation consultation_date final:", consultation_date_value)
 
         signos = _parse_signos_vitales(getattr(data, "signos_vitales", None))
         weight_value = (
