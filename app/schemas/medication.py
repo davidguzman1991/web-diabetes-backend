@@ -1,3 +1,4 @@
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, AliasChoices
 
 
@@ -36,6 +37,6 @@ class MedicationUpdate(BaseModel):
 
 
 class MedicationOut(MedicationBase):
-    id: str
+    id: UUID
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
