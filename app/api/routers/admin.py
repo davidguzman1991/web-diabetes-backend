@@ -157,6 +157,19 @@ def healthcheck():
     return {"status": "ok"}
 
 
+@router.get("/stats")
+def get_admin_stats(
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_admin),
+):
+    total_patients = db.query(Patient).count()
+    total_consultations = db.query(Consultation).count()
+    return {
+        "total_patients": total_patients,
+        "total_consultations": total_consultations,
+    }
+
+
 def _get_patient_user(db: Session, username: str) -> User:
     user = db.query(User).filter(User.username == username).first()
     if not user or user.role.lower() != "patient":
