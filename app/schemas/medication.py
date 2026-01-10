@@ -19,6 +19,10 @@ class MedicationCreate(MedicationBase):
     pass
 
 
+class MedicationCatalogCreate(MedicationBase):
+    pass
+
+
 class MedicationUpdate(BaseModel):
     nombre_generico: str | None = Field(
         default=None, validation_alias=AliasChoices("nombre_generico", "generic_name")

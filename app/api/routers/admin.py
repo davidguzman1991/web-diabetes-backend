@@ -32,7 +32,12 @@ from app.schemas.patient import (
     PatientSearchOut,
     ResetPatientPasswordRequest,
 )
-from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
+from app.schemas.medication import (
+    MedicationCatalogCreate,
+    MedicationCreate,
+    MedicationUpdate,
+    MedicationOut,
+)
 from app.schemas.visit import VisitCreate, VisitOut, VisitListItem
 from app.schemas.consulta import ConsultaCreate, ConsultaOut, ConsultaSummary
 from app.schemas.consultation import ConsultationCreate, ConsultationOut, ConsultationResponse
@@ -364,6 +369,44 @@ def delete_patient(patient_id: str, db: Session = Depends(get_db)):
 @router.get("/medications", response_model=list[MedicationOut])
 def list_medications(db: Session = Depends(get_db)):
     return medication_crud.list_all(db)
+
+@router.post("/medications/catalog", response_model=MedicationOut, status_code=status.HTTP_201_CREATED)
+def create_medication_catalog_entry(
+    data: MedicationCatalogCreate, db: Session = Depends(get_db)
+):
+    nombre_generico = _normalize_text(data.nombre_generico)
+    if not nombre_generico:
+        raise HTTPException(status_code=422, detail="nombre_generico es requerido")
+    presentacion = _normalize_text(data.presentacion)
+    forma = _normalize_text(data.forma)
+    existing_query = db.query(MedicationCatalog).filter(
+        func.lower(MedicationCatalog.nombre_generico) == nombre_generico.lower()
+    )
+    if presentacion is None:
+        existing_query = existing_query.filter(MedicationCatalog.presentacion.is_(None))
+    else:
+        existing_query = existing_query.filter(
+            func.lower(MedicationCatalog.presentacion) == presentacion.lower()
+        )
+    if forma is None:
+        existing_query = existing_query.filter(MedicationCatalog.forma.is_(None))
+    else:
+        existing_query = existing_query.filter(
+            func.lower(MedicationCatalog.forma) == forma.lower()
+        )
+    existing = existing_query.first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Medication already exists")
+    medication = MedicationCatalog(
+        nombre_generico=nombre_generico,
+        presentacion=presentacion,
+        forma=forma,
+        activo=bool(data.activo),
+    )
+    db.add(medication)
+    db.commit()
+    db.refresh(medication)
+    return medication
 
 @router.get("/medications/catalog/count")
 def get_medication_catalog_count(db: Session = Depends(get_db)):
