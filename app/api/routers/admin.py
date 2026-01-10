@@ -365,6 +365,11 @@ def delete_patient(patient_id: str, db: Session = Depends(get_db)):
 def list_medications(db: Session = Depends(get_db)):
     return medication_crud.list_all(db)
 
+@router.get("/medications/catalog/count")
+def get_medication_catalog_count(db: Session = Depends(get_db)):
+    count = db.query(MedicationCatalog).count()
+    return {"count": count}
+
 @router.get("/medications/autocomplete", response_model=list[MedicationOut])
 def autocomplete_medications(q: str = "", db: Session = Depends(get_db)):
     return medication_crud.autocomplete(db, q)
