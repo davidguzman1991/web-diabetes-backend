@@ -106,10 +106,10 @@ def upgrade() -> None:
         conn.execute(
             sa.text(
                 "insert into medication_catalog (id, nombre_generico, presentacion, forma, activo) "
-                "select :id, :nombre, null, null, true "
+                "select :id, cast(:nombre as varchar), null, null, true "
                 "where not exists ("
                 "select 1 from medication_catalog "
-                "where lower(nombre_generico) = lower(:nombre)"
+                "where lower(nombre_generico) = lower(cast(:nombre as varchar))"
                 ")"
             ),
             {"id": med_id, "nombre": nombre},
