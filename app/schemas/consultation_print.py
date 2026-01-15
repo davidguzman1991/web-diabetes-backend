@@ -11,6 +11,7 @@ class PrintPatient(BaseModel):
 
 class PrintConsultation(BaseModel):
     created_at: datetime
+    consultation_date: date | None = None
     diagnosis: str | None = None
     notes: str | None = None
     indications: str | None = None

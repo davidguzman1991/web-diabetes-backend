@@ -77,6 +77,7 @@ def get_consultation_print(
         ),
         consultation=PrintConsultation(
             created_at=consultation.created_at,
+            consultation_date=consultation.consultation_date,
             diagnosis=consultation.diagnosis,
             notes=consultation.notes,
             indications=consultation.indications,
