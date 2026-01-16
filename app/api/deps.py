@@ -26,20 +26,19 @@ def get_db():
 
 def _get_token(
     credentials: HTTPAuthorizationCredentials | None,
-    request: Request | None,
+    request: Request,
 ) -> str:
     if credentials is not None and credentials.credentials:
         return credentials.credentials
-    if request is not None:
-        cookie_token = request.cookies.get(TOKEN_COOKIE_NAME)
-        if cookie_token:
-            return cookie_token
+    cookie_token = request.cookies.get(TOKEN_COOKIE_NAME)
+    if cookie_token:
+        return cookie_token
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
 def get_current_token(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    request: Request | None = None,
 ) -> dict:
     token = _get_token(credentials, request)
     try:
@@ -58,11 +57,11 @@ class AuthUser:
 
 
 def get_current_user(
+    request: Request,
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    request: Request | None = None,
 ) -> User | AuthUser:
-    payload = get_current_token(credentials, request)
+    payload = get_current_token(request, credentials)
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
