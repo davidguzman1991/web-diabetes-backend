@@ -16,11 +16,13 @@ from app.api.routers import debug
 app = FastAPI(title=settings.APP_NAME)
 
 PROD_FRONTEND_ORIGINS = {
+    "https://portal.medicodiabetes.com",
     "https://web-diabetes-production.up.railway.app",
 }
 
 origins = {
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     *PROD_FRONTEND_ORIGINS,
 }
 if settings.CORS_ORIGINS:

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ security = HTTPBearer(
     auto_error=False,
     description="Enter the token without the Bearer prefix",
 )
+TOKEN_COOKIE_NAME = "access_token"
 
 
 def get_db():
@@ -23,14 +24,24 @@ def get_db():
         db.close()
 
 
-def _get_token(credentials: HTTPAuthorizationCredentials | None) -> str:
-    if credentials is None or not credentials.credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    return credentials.credentials
+def _get_token(
+    credentials: HTTPAuthorizationCredentials | None,
+    request: Request | None,
+) -> str:
+    if credentials is not None and credentials.credentials:
+        return credentials.credentials
+    if request is not None:
+        cookie_token = request.cookies.get(TOKEN_COOKIE_NAME)
+        if cookie_token:
+            return cookie_token
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
-def get_current_token(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
-    token = _get_token(credentials)
+def get_current_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    request: Request | None = None,
+) -> dict:
+    token = _get_token(credentials, request)
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         return payload
@@ -49,8 +60,9 @@ class AuthUser:
 def get_current_user(
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    request: Request | None = None,
 ) -> User | AuthUser:
-    payload = get_current_token(credentials)
+    payload = get_current_token(credentials, request)
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
